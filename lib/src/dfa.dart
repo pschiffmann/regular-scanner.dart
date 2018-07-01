@@ -36,21 +36,9 @@ class Transition extends Range {
   final int successor;
 }
 
-class SingleGuardTransition implements Transition {
-  const SingleGuardTransition(this.value, this.successor);
+class SingleGuardTransition extends SingleElementRange implements Transition {
+  const SingleGuardTransition(int value, this.successor) : super(value);
 
   @override
   final int successor;
-
-  final int value;
-  @override
-  int get min => value;
-  @override
-  int get max => value;
-
-  @override
-  bool contains(int n) => n == value;
-
-  @override
-  String toString() => value.toString();
 }

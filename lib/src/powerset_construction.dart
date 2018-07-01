@@ -14,6 +14,8 @@ import 'ast.dart' as nfa;
 import 'dfa.dart' as dfa;
 import 'ranges.dart';
 
+part 'transitions.dart';
+
 ///
 List<dfa.State<T>> constructDfa<T extends Pattern>(
     final Iterable<nfa.Root> expressions) {
@@ -29,14 +31,14 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
   // All closures from [stateIds] that have not been processed yet.
   final unresolved = new Queue<MapEntry<List<nfa.State>, int>>();
 
-  /// Allocates ascending [nfa.State.id]s, starting from 0 for the first state.
+  /// Allocates ascending [nfa.State.id]s, starting from 0 for the start state.
   int lookupId(List<nfa.State> closure) => stateIds.putIfAbsent(closure, () {
         final id = stateIds.length;
         stateIds[closure] = id;
         return id;
       });
 
-  // The fully resolved states.
+  // The fully constructed states.
   final states = <dfa.State>[];
 
   // Initialize [queue] with a start state. Its closure doesn't need to be
@@ -47,7 +49,7 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
     final id = unresolved.first.value;
     unresolved.removeFirst();
 
-    final state = _resolveState(closure, lookupId);
+    final state = constructState(closure, lookupId);
 
     assert(states.length == id);
     states.add(state);
@@ -56,7 +58,9 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
   return states;
 }
 
-///
+/// Two closures are considered equal if they contain the same elements. Because
+/// [ListEquality] also considers the element order, closures must be sorted
+/// with [_sortClosure].
 const ListEquality<nfa.State> _closureEquality = const ListEquality();
 
 /// Sorts the states in a closure first by their pattern, then by their id. The
@@ -68,21 +72,20 @@ int _sortClosure(nfa.State a, nfa.State b) => a.root != b.root
 
 /// Constructs an [nfa.State] from [closure]. [lookupId] is used to resolve the
 /// ids of successors of this state.
-dfa.State _resolveState(
+dfa.State constructState(
     List<nfa.State> closure, int Function(List<nfa.State>) lookupId) {
   final transitions = <MutableTransition>[];
   final negated = <nfa.CharacterSet>[];
   final defaultTransition = <nfa.State>[];
   for (final successor in closure.expand((state) => state.successors.toSet())) {
     if (successor is nfa.Literal) {
-      _insertSuccessor(
-          successor, transitions, new Range.single(successor.rune));
+      addSuccessor(transitions, successor, new Range.single(successor.rune));
     } else if (successor is nfa.CharacterSet) {
       if (successor.negated) {
         negated.add(successor);
       } else {
         for (final runes in successor.runes) {
-          _insertSuccessor(successor, transitions, runes);
+          addSuccessor(transitions, successor, runes);
         }
       }
     } else {
@@ -107,13 +110,6 @@ dfa.State _resolveState(
           ? dfa.State.errorId
           : lookupId(defaultTransition),
       accept: _highestPrecedencePattern(closure.map((state) => state.root)));
-}
-
-/// Inserts [successor] into [transitions] at [position], modifying
-/// [transitions] in place.
-void _insertSuccessor(
-    nfa.State successor, List<MutableTransition> transitions, Range position) {
-  final leftmostIntersection = binarySearch(transitions, position.min);
 }
 
 /// Returns the element in [expressions] with the highest [Pattern.precedence],
@@ -174,10 +170,4 @@ class NfaStartState implements nfa.State {
       throw new UnsupportedError('Undefined for this mock state');
   @override
   int get id => throw new UnsupportedError('Undefined for this mock state');
-}
-
-class MutableTransition extends Range {
-  MutableTransition(int min, int max) : super(min, max);
-
-  final List<nfa.State> closure = [];
 }
