@@ -11,9 +11,17 @@ void addSuccessor(
     List<MutableTransition> transitions, nfa.State successor, Range range) {
   // The next visited element in [transitions].
   var i = leftmostIntersectionOrRightNeighbour(transitions, range);
-  // The leftmost value in [range] that has not been processed.
-  var left = range.min;
-  while (left <= range.max) {
+
+  // The first intersection starts left of [range]. Split that part off and step
+  // over it.
+  if (i != transitions.length && transitions[i].min < range.min) {
+    splitTransition(transitions, i, range.min);
+    i++;
+  }
+
+  for (var left = range.min;
+      left <= range.max;
+      left = transitions[i].max + 1, i++) {
     // The next transition doesn't intersect [range]. Insert a new transition
     // that contains the remainder of [range].
     if (i == transitions.length || range.max < transitions[i].min) {
@@ -31,8 +39,6 @@ void addSuccessor(
       splitTransition(transitions, i, range.max + 1);
     }
     transitions[i].closure.add(successor);
-    left = transitions[i].max + 1;
-    i++;
   }
 }
 
