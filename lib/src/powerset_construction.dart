@@ -93,19 +93,17 @@ dfa.State constructState(
     }
   }
 
+  for (final successor in negated) {
+    for (final runes in successor.runes) {
+      addNegatedSuccessor(transitions, successor, runes);
+    }
+  }
   for (final transition in transitions) {
-    transition.closure
-      ..addAll(defaultTransition)
-      ..sort(_sortClosure);
+    transition.closure.addAll(defaultTransition);
   }
   defaultTransition.sort(_sortClosure);
 
-  return new dfa.State(
-      transitions
-          .map((t) => t.min == t.max
-              ? new dfa.Transition.single(t.min, lookupId(t.closure))
-              : new dfa.Transition(t.min, t.max, lookupId(t.closure)))
-          .toList(growable: false),
+  return new dfa.State(finalizeTransitions(transitions, lookupId),
       defaultTransition: defaultTransition.isEmpty
           ? dfa.State.errorId
           : lookupId(defaultTransition),

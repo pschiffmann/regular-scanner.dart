@@ -3,7 +3,7 @@ part of 'powerset_construction.dart';
 class MutableTransition extends Range {
   MutableTransition(int min, int max) : super(min, max);
 
-  final List<nfa.State> closure = [];
+  final SplayTreeSet<nfa.State> closure = new SplayTreeSet(_sortClosure);
 }
 
 ///
@@ -42,9 +42,11 @@ void addSuccessor(
   }
 }
 
-void addNegatedSuccessor() {}
+void addNegatedSuccessor(
+    List<MutableTransition> transitions, nfa.State successor, Range range) {}
 
-void addDefaultSuccessor() {}
+void addDefaultSuccessor(
+    List<MutableTransition> transitions, nfa.State successor) {}
 
 /// Splits the element in [transitions] at index [replaceAt] into two new
 /// [MutableTransition]s that span the ranges [`min`, `min + splitAt - 1`] and
@@ -64,3 +66,32 @@ void splitTransition(
           ..closure.addAll(old.closure));
 }
 
+/// Converts a sorted list of [MutableTransition]s to corresponding
+/// [dfa.Transition]s.
+///
+/// This method merges adjacent transitions if possible. For example, the
+/// expression `(a|b)c` will be parsed into an NFA tree where `a` and `b` are
+/// represented as two different states, and so they will be represented in
+/// [transitions] as two different [MutableTransition]s. This method will merge
+/// them together, as if the expression had been `[ab]c`.
+List<dfa.Transition> finalizeTransitions(List<MutableTransition> transitions,
+    int Function(List<nfa.State>) lookupId) {
+  final result = <dfa.Transition>[];
+  var i = 0;
+
+  while (i < transitions.length) {
+    final closure = transitions[i].closure;
+    final min = transitions[i].min;
+    var max = transitions[i].max;
+    i++;
+    while (i < transitions.length &&
+        max + 1 == transitions[i].min &&
+        closure == transitions[i].closure) {
+      max = transitions[i].max;
+      i++;
+    }
+    result.add(new dfa.Transition(
+        min, max, lookupId(closure.toList(growable: false))));
+  }
+  return result;
+}
