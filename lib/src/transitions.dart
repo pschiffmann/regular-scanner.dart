@@ -1,13 +1,13 @@
 part of 'powerset_construction.dart';
 
-class MutableTransition extends Range {
-  MutableTransition(int min, int max) : super(min, max);
+class ConstructionTransition extends Range {
+  ConstructionTransition(int min, int max) : super(min, max);
 
-  final SplayTreeSet<nfa.State> closure = mutableClosure();
+  final SplayTreeSet<nfa.State> closure = constructionClosure();
 }
 
 ///
-void reserveTransition(List<MutableTransition> transitions, Range range,
+void reserveTransition(List<ConstructionTransition> transitions, Range range,
     {nfa.State successor}) {
   // The next visited element in [transitions].
   var i = leftmostIntersectionOrRightNeighbour(transitions, range);
@@ -25,13 +25,13 @@ void reserveTransition(List<MutableTransition> transitions, Range range,
     // The next transition doesn't intersect [range]. Insert a new transition
     // that contains the remainder of [range].
     if (i == transitions.length || range.max < transitions[i].min) {
-      transitions.insert(i, new MutableTransition(left, range.max));
+      transitions.insert(i, new ConstructionTransition(left, range.max));
     }
     // There's a gap between [left] and the next intersecting transition. Close
     // it with a new transition.
     else if (left < transitions[i].min) {
       transitions.insert(
-          i, new MutableTransition(left, transitions[i].min - 1));
+          i, new ConstructionTransition(left, transitions[i].min - 1));
     }
     // [range] ends in the middle of `transitions[i]`. Split the current
     // transition so [successor] isn't added to a value outside of [range].
@@ -45,32 +45,33 @@ void reserveTransition(List<MutableTransition> transitions, Range range,
 }
 
 /// Splits the element in [transitions] at index [replaceAt] into two new
-/// [MutableTransition]s that span the ranges [`min`, `min + splitAt - 1`] and
+/// [ConstructionTransition]s that span the ranges [`min`, `min + splitAt - 1`] and
 /// [`min + splitAt`, `max`].
 ///
 /// `min` and `max` refer to the respective properties of the element at index
 /// [replaceAt]. The new transitions contain the same `closure` as that element.
 void splitTransition(
-    List<MutableTransition> transitions, int replaceAt, int splitAt) {
+    List<ConstructionTransition> transitions, int replaceAt, int splitAt) {
   final old = transitions[replaceAt];
   transitions
-    ..[replaceAt] = (new MutableTransition(old.min, old.min + splitAt - 1)
+    ..[replaceAt] = (new ConstructionTransition(old.min, old.min + splitAt - 1)
       ..closure.addAll(old.closure))
     ..insert(
         replaceAt + 1,
-        new MutableTransition(old.min + splitAt, old.max)
+        new ConstructionTransition(old.min + splitAt, old.max)
           ..closure.addAll(old.closure));
 }
 
-/// Converts a sorted list of [MutableTransition]s to corresponding
+/// Converts a sorted list of [ConstructionTransition]s to corresponding
 /// [dfa.Transition]s.
 ///
 /// This method merges adjacent transitions if possible. For example, the
 /// expression `(a|b)c` will be parsed into an NFA tree where `a` and `b` are
 /// represented as two different states, and so they will be represented in
-/// [transitions] as two different [MutableTransition]s. This method will merge
+/// [transitions] as two different [ConstructionTransition]s. This method will merge
 /// them together, as if the expression had been `[ab]c`.
-List<dfa.Transition> finalizeTransitions(List<MutableTransition> transitions,
+List<dfa.Transition> finalizeTransitions(
+    List<ConstructionTransition> transitions,
     int Function(List<nfa.State>) lookupId) {
   final result = <dfa.Transition>[];
   var i = 0;
@@ -82,8 +83,7 @@ List<dfa.Transition> finalizeTransitions(List<MutableTransition> transitions,
     i++;
     while (i < transitions.length &&
         max + 1 == transitions[i].min &&
-        const IterableEquality<nfa.State>()
-            .equals(closure, transitions[i].closure)) {
+        closureEquality.equals(closure, transitions[i].closure)) {
       max = transitions[i].max;
       i++;
     }

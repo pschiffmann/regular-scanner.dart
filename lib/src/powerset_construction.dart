@@ -19,7 +19,7 @@ part 'transitions.dart';
 
 ///
 List<dfa.State<T>> constructDfa<T extends Pattern>(
-    final Iterable<nfa.Root> expressions) {
+    final List<nfa.Root> expressions) {
   if (expressions.isEmpty) {
     throw new ArgumentError('patterns must not be empty');
   }
@@ -36,7 +36,11 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
   /// [dfa.State.errorId] if [closure] is empty.
   int lookupId(List<nfa.State> closure) => closure.isEmpty
       ? dfa.State.errorId
-      : stateIds.putIfAbsent(closure, () => stateIds.length);
+      : stateIds.putIfAbsent(closure, () {
+          final id = stateIds.length;
+          unresolved.add(new MapEntry(closure, id));
+          return id;
+        });
 
   /// The fully constructed states.
   final states = <dfa.State>[];
@@ -62,9 +66,9 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
 /// ids of successors of this state.
 dfa.State constructState(
     List<nfa.State> closure, int Function(List<nfa.State>) lookupId) {
-  final transitions = <MutableTransition>[];
+  final transitions = <ConstructionTransition>[];
   final negated = <nfa.CharacterSet>[];
-  final defaultTransition = mutableClosure();
+  final defaultTransition = constructionClosure();
   for (final successor in closure.expand((state) => state.successors).toSet()) {
     if (successor is nfa.Literal) {
       reserveTransition(transitions, new Range.single(successor.rune),

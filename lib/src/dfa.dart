@@ -34,6 +34,12 @@ class Transition extends Range {
       SingleGuardTransition;
 
   final int successor;
+
+  @override
+  String toString() => min == max
+      ? '${new String.fromCharCode(min)} -> $successor'
+      : '[${new String.fromCharCode(min)}-${new String.fromCharCode(max)}] '
+      '-> $successor';
 }
 
 class SingleGuardTransition extends SingleElementRange implements Transition {

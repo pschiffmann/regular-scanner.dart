@@ -10,5 +10,7 @@ int sortClosure(nfa.State a, nfa.State b) => a.root != b.root
     ? a.root.pattern.pattern.compareTo(b.root.pattern.pattern)
     : a.id - b.id;
 
-/// Returns a new [SplayTreeSet] that can be used to construct new closures.
-SplayTreeSet<nfa.State> mutableClosure() => new SplayTreeSet(sortClosure);
+/// Returns a new [SplayTreeSet] that can be used to construct new closures
+/// because it automatically filters out duplicates and orders its elements with
+/// [sortClosure].
+SplayTreeSet<nfa.State> constructionClosure() => new SplayTreeSet(sortClosure);

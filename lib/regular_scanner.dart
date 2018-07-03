@@ -1,10 +1,14 @@
-/// This library shadows the `Pattern` class from `dart:core`, so you might want
-/// to import it with a prefix:
+///
+/// This library shadows the [core.Pattern] class from `dart:core`, so you might
+/// want to import it with a prefix:
 ///
 /// ```dart
 /// import 'package:regular_scanner/scanner.dart' as rs;
 /// ```
 library regular_scanner.scanner;
+
+import 'dart:core' hide Pattern;
+import 'dart:core' as core show Pattern;
 
 import 'src/dfa.dart' show State;
 import 'src/parser.dart' show parse;
@@ -18,6 +22,8 @@ class InjectScanner {
   final List<Pattern> patterns;
 }
 
+/// Used as an argument to [InjectScanner] to specify the patterns that this
+/// [Scanner] matches.
 class Pattern {
   const Pattern(this.pattern, {this.precedence});
 
@@ -37,14 +43,14 @@ class MatchResult<T extends Pattern> {
 }
 
 class Scanner<T extends Pattern> {
-  factory Scanner(Iterable<Pattern> patterns) =>
-      new Scanner.internal(constructDfa(patterns.map(parse)));
+  factory Scanner(Iterable<Pattern> patterns) => new Scanner.withParseTable(
+      constructDfa(patterns.map(parse).toList(growable: false)));
 
   /// Internal constructor. Only visible so that generated code can instantiate
   /// this class as a `const` expression.
-  const Scanner.internal(this._states);
+  const Scanner.withParseTable(this.states);
 
-  final List<State<T>> _states;
+  final List<State<T>> states;
 
   /// Matches [characters] against the patterns in this scanner. Returns the
   /// longest possible match, or `null` if no pattern matched.
@@ -65,7 +71,7 @@ class Scanner<T extends Pattern> {
     var steps = 0;
     MatchResult<T> result;
     while (nextState != State.errorId && characters.current != null) {
-      final state = _states[nextState];
+      final state = states[nextState];
       if (state.accept != null) {
         result = new MatchResult(state.accept, steps);
       }
