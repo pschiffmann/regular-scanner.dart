@@ -5,43 +5,50 @@ import 'package:meta/meta.dart';
 
 import '../regular_scanner.dart' show Pattern;
 import 'ast.dart';
+import 'ranges.dart';
 
 enum TokenType {
   /// Characters that only match themselves.
   literal,
 
-  /// `.` matches any character. Only recognized in _normal_ parsing context.
+  /// `.` matches any character.  Only  recognized while
+  /// [TokenIterator.insideCharacterSet] is `false`.
   dot,
 
-  /// `+`, `*` and `?` repetition modifiers. Only recognized in _normal_ parsing
-  /// context.
+  /// `+`, `*` and `?` repetition modifiers.  Only  recognized while
+  /// [TokenIterator.insideCharacterSet] is `false`.
   repetition,
 
-  /// `|` separates two alternative patterns. Only recognized in _normal_
-  /// parsing context.
+  /// `|` separates two alternative patterns.  Only recognized while
+  /// [TokenIterator.insideCharacterSet] is `false`.
   alternation,
 
-  /// `(` starts a group that can be repeated as a whole. Only recognized in
-  /// _normal_ parsing context.
+  /// `(` starts a group that can be repeated as a whole. Only recognized while
+  /// [TokenIterator.insideCharacterSet] is `false`.
   groupStart,
 
-  /// `)` marks the end of a [groupStart]. Only recognized in _normal_ parsing
-  /// context.
+  /// `)` marks the end of a [groupStart]. Only recognized while
+  /// [TokenIterator.insideCharacterSet] is `false`.
   groupEnd,
 
-  /// `[` starts a choice of the characters inside the brackets.
+  /// `[` starts a [CharacterSet].
   characterSetStart,
 
-  /// `]` marks the of a [characterSetStart].
+  /// `]` marks the end of a [characterSetStart].
   characterSetEnd,
 
-  /// `-` separates the lower and upper bounds in a choice range. Only
-  /// recognized in _choice_ parsing context.
-  rangeSeparator
+  /// `-` separates the lower and upper bounds in a [CharacterSet] range. Only
+  /// recognized while [TokenIterator.insideCharacterSet] is `true`.
+  rangeSeparator,
+
+  /// `^` as the first character in a [CharacterSet] sets [CharacterSet.negated]
+  /// to `true`. Only recognized while  [TokenIterator.insideCharacterSet] is
+  /// `true`.
+  setNegation
 }
 
 const List<int> escapeNormal = const [$backslash];
-const List<int> escapeChoice = const [$backslash];
+const List<int> escapeCharacterSet = const [$backslash];
 
 /// Presents [pattern] as a sequence of regular expression tokens. [current]
 /// contains the rune, or lexeme, and [type] contains the resolved type for that
@@ -80,11 +87,12 @@ class TokenIterator implements Iterator<int> {
       _type = null;
       return false;
     }
-    _type = insideCharacterSet ? _resolveTypeChoice() : _resolveTypeNormal();
+    _type =
+        insideCharacterSet ? _resolveTypeCharacterSet() : _resolveTypeNormal();
     return true;
   }
 
-  /// Resolve the [type] of [current] while the parser is not reading a choice.
+  /// Resolve the [type] of [current] while [insideCharacterSet] is `false`.
   TokenType _resolveTypeNormal() {
     switch (current) {
       case $backslash:
@@ -95,7 +103,7 @@ class TokenIterator implements Iterator<int> {
               pattern.length - 1);
         }
         if (!escapeNormal.contains(current)) {
-          error(r'Unrecognized escape sequence `\$char`');
+          // error(r'Unrecognized escape sequence `\$char`');
         }
         continue literal;
       case $bar:
@@ -105,7 +113,6 @@ class TokenIterator implements Iterator<int> {
       case $rparen:
         return TokenType.groupEnd;
       case $lbracket:
-        insideCharacterSet = true;
         return TokenType.characterSetStart;
       case $rbracket:
         return TokenType.characterSetEnd;
@@ -120,14 +127,40 @@ class TokenIterator implements Iterator<int> {
     throw new UnimplementedError('This line is unreachable');
   }
 
-  /// Resolve the [type] of [current] while the parser is reading a choice.
-  TokenType _resolveTypeChoice() => null;
+  /// Resolve the [type] of [current] while [insideCharacterSet] is `true`.
+  TokenType _resolveTypeCharacterSet() {
+    switch (current) {
+      case $backslash:
+        if (!_runes.moveNext()) {
+          error(
+              r'An escape character `\` must not be '
+              'the last character in a pattern',
+              pattern.length - 1);
+        }
+        if (!escapeCharacterSet.contains(current)) {
+          // error(r'Unrecognized escape sequence `\$char`');
+        }
+        continue literal;
+      case $lbracket:
+        return TokenType.characterSetStart;
+      case $rbracket:
+        return TokenType.characterSetEnd;
+      case $minus:
+        return TokenType.rangeSeparator;
+      case $caret:
+        return TokenType.setNegation;
+      literal:
+      default:
+        return TokenType.literal;
+    }
+    throw new UnimplementedError('This line is unreachable');
+  }
 
   /// Convenience method to throw a [FormatException] with [message] and
   /// [offset]. Uses the rune index of [current] if [offset] is omitted.
   @alwaysThrows
   void error(String message, [int offset]) =>
-      throw new FormatException(message, pattern, offset ?? _runes.rawIndex);
+      throw new FormatException(message, pattern, offset ?? index);
 }
 
 /// Parses [pattern] into an [Expression] tree. Throws a [FormatException] on
@@ -257,7 +290,63 @@ Expression parseGroup(TokenIterator context) {
   }
   context.moveNext();
 
-  return result..repetition = parseRepetiton(context);
+  return result..repetition |= parseRepetiton(context);
 }
 
-CharacterSet parseCharacterSet(TokenIterator context) => null;
+CharacterSet parseCharacterSet(TokenIterator context) {
+  assert(context.type == TokenType.characterSetStart);
+  context.insideCharacterSet = true;
+
+  final startIndex = context.index;
+  context.moveNext(onEndOfString: 'Unclosed `[`');
+
+  final negated = context.type == TokenType.setNegation;
+  if (negated) {
+    context.moveNext();
+  }
+
+  final runes = <Range>[];
+  loop:
+  while (context.type != null) {
+    switch (context.type) {
+      case TokenType.literal:
+        final lowerBound = context.current;
+        context.moveNext();
+        if (context.type != TokenType.rangeSeparator) {
+          runes.add(new Range.single(lowerBound));
+          break;
+        }
+        context.moveNext();
+        // ignore: invariant_booleans
+        if (context.type == null) {
+          break loop;
+        } else if (context.type != TokenType.literal) {
+          continue unescapedSpecialCharacter;
+        }
+        runes.add(new Range(lowerBound, context.current));
+        context.moveNext();
+        break;
+      unescapedSpecialCharacter:
+      case TokenType.characterSetStart:
+      case TokenType.rangeSeparator:
+      case TokenType.setNegation:
+        context.error(
+            '`${new String.fromCharCode(context.current)}` must be escaped in '
+            'character sets, even if it is the first or last character');
+        break;
+      case TokenType.characterSetEnd:
+        break loop;
+      default:
+        throw new UnimplementedError('This case is unreachable');
+    }
+  }
+
+  if (context.type != TokenType.characterSetEnd) {
+    context.error('Unclosed `[`', startIndex);
+  }
+  context
+    ..insideCharacterSet = false
+    ..moveNext();
+
+  return new CharacterSet(runes, negated)..repetition = parseRepetiton(context);
+}

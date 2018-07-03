@@ -72,7 +72,8 @@ abstract class State extends Expression {
 
 /// A literal matches exactly [rune].
 class Literal extends State {
-  Literal(this.rune, [Repetition repetition]) : super(repetition);
+  Literal(this.rune, [Repetition repetition = Repetition.one])
+      : super(repetition);
 
   final int rune;
 
@@ -82,7 +83,7 @@ class Literal extends State {
 
 /// A dot pattern matches any single character.
 class Dot extends State {
-  Dot([Repetition repetition]) : super(repetition);
+  Dot([Repetition repetition = Repetition.one]) : super(repetition);
 
   @override
   String toString() => '.$repetition';
@@ -90,14 +91,26 @@ class Dot extends State {
 
 /// A character set represents patterns like `[A-Z]`.
 class CharacterSet extends State {
-  CharacterSet(this.runes, this.negated, [Repetition repetition])
+  CharacterSet(this.runes, this.negated,
+      [Repetition repetition = Repetition.one])
       : super(repetition);
 
   final List<Range> runes;
   final bool negated;
 
   @override
-  String toString() => '[${negated ? "^" : ""}${runes.join("")}]';
+  String toString() {
+    final contents = new StringBuffer();
+    for (final range in runes) {
+      contents.writeCharCode(range.min);
+      if (range.max > range.min) {
+        contents
+          ..write('-')
+          ..writeCharCode(range.max);
+      }
+    }
+    return negated ? '[^$contents]' : '[$contents]';
+  }
 }
 
 ///
@@ -143,7 +156,8 @@ abstract class DelegatingExpression extends Expression {
 /// A sequence matches iff all of its children match in order. This represents
 /// the concatenation of e.g. _`a`, then `b`_ in the expression `ab`.
 class Sequence extends DelegatingExpression {
-  Sequence(Iterable<Expression> children, [Repetition repetition])
+  Sequence(Iterable<Expression> children,
+      [Repetition repetition = Repetition.one])
       : super(children, repetition);
 
   @override
@@ -202,7 +216,8 @@ class Sequence extends DelegatingExpression {
 /// An alternation matches iff any of its children matches. This represents e.g.
 /// _`a` or `b` or_ in the expression `a|b`.
 class Alternation extends DelegatingExpression {
-  Alternation(Iterable<Expression> children, [Repetition repetition])
+  Alternation(Iterable<Expression> children,
+      [Repetition repetition = Repetition.one])
       : super(children, repetition);
 
   @override
@@ -310,7 +325,7 @@ class Repetition {
   final bool optional;
   final bool repeat;
 
-  Repetition union(Repetition other) {
+  Repetition operator |(Repetition other) {
     if (optional || other.optional) {
       return repeat || other.repeat ? zeroOrMore : zeroOrOne;
     } else {
