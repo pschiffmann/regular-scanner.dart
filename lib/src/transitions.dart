@@ -3,12 +3,12 @@ part of 'powerset_construction.dart';
 class MutableTransition extends Range {
   MutableTransition(int min, int max) : super(min, max);
 
-  final SplayTreeSet<nfa.State> closure = new SplayTreeSet(_sortClosure);
+  final SplayTreeSet<nfa.State> closure = mutableClosure();
 }
 
 ///
-void addSuccessor(
-    List<MutableTransition> transitions, nfa.State successor, Range range) {
+void reserveTransition(List<MutableTransition> transitions, Range range,
+    {nfa.State successor}) {
   // The next visited element in [transitions].
   var i = leftmostIntersectionOrRightNeighbour(transitions, range);
 
@@ -38,15 +38,11 @@ void addSuccessor(
     else if (range.max < transitions[i].max) {
       splitTransition(transitions, i, range.max + 1);
     }
-    transitions[i].closure.add(successor);
+    if (successor != null) {
+      transitions[i].closure.add(successor);
+    }
   }
 }
-
-void addNegatedSuccessor(
-    List<MutableTransition> transitions, nfa.State successor, Range range) {}
-
-void addDefaultSuccessor(
-    List<MutableTransition> transitions, nfa.State successor) {}
 
 /// Splits the element in [transitions] at index [replaceAt] into two new
 /// [MutableTransition]s that span the ranges [`min`, `min + splitAt - 1`] and
@@ -86,7 +82,8 @@ List<dfa.Transition> finalizeTransitions(List<MutableTransition> transitions,
     i++;
     while (i < transitions.length &&
         max + 1 == transitions[i].min &&
-        closure == transitions[i].closure) {
+        const IterableEquality<nfa.State>()
+            .equals(closure, transitions[i].closure)) {
       max = transitions[i].max;
       i++;
     }

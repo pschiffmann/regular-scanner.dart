@@ -14,6 +14,7 @@ import 'ast.dart' as nfa;
 import 'dfa.dart' as dfa;
 import 'ranges.dart';
 
+part 'closure.dart';
 part 'transitions.dart';
 
 ///
@@ -23,22 +24,21 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
     throw new ArgumentError('patterns must not be empty');
   }
 
-  // Maps DFA state closures to DFA [State.id]s. All keys must be sorted with
-  // [_sortClosure] to be comparable by [_closureEquality].
+  /// Maps NFA state closures to [dfa.State.id]s.
   final stateIds = new LinkedHashMap<List<nfa.State>, int>(
-      equals: _closureEquality.equals, hashCode: _closureEquality.hash);
+      equals: closureEquality.equals, hashCode: closureEquality.hash);
 
-  // All closures from [stateIds] that have not been processed yet.
+  /// All closures from [stateIds] that have not been processed yet.
   final unresolved = new Queue<MapEntry<List<nfa.State>, int>>();
 
-  /// Allocates ascending [nfa.State.id]s, starting from 0 for the start state.
-  int lookupId(List<nfa.State> closure) => stateIds.putIfAbsent(closure, () {
-        final id = stateIds.length;
-        stateIds[closure] = id;
-        return id;
-      });
+  /// Returns the [dfa.State.id] that belongs to [closure], allocating a new id
+  /// if this is the first time [closure] is looked up. Returns
+  /// [dfa.State.errorId] if [closure] is empty.
+  int lookupId(List<nfa.State> closure) => closure.isEmpty
+      ? dfa.State.errorId
+      : stateIds.putIfAbsent(closure, () => stateIds.length);
 
-  // The fully constructed states.
+  /// The fully constructed states.
   final states = <dfa.State>[];
 
   // Initialize [queue] with a start state. Its closure doesn't need to be
@@ -58,55 +58,54 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
   return states;
 }
 
-/// Two closures are considered equal if they contain the same elements. Because
-/// [ListEquality] also considers the element order, closures must be sorted
-/// with [_sortClosure].
-const ListEquality<nfa.State> _closureEquality = const ListEquality();
-
-/// Sorts the states in a closure first by their pattern, then by their id. The
-/// order itself doesn't matter, but it needs to be unambiguous so that
-/// [_closureEquality] compares and hashes them correctly.
-int _sortClosure(nfa.State a, nfa.State b) => a.root != b.root
-    ? a.root.pattern.pattern.compareTo(b.root.pattern.pattern)
-    : a.id - b.id;
-
 /// Constructs an [nfa.State] from [closure]. [lookupId] is used to resolve the
 /// ids of successors of this state.
 dfa.State constructState(
     List<nfa.State> closure, int Function(List<nfa.State>) lookupId) {
   final transitions = <MutableTransition>[];
   final negated = <nfa.CharacterSet>[];
-  final defaultTransition = <nfa.State>[];
-  for (final successor in closure.expand((state) => state.successors.toSet())) {
+  final defaultTransition = mutableClosure();
+  for (final successor in closure.expand((state) => state.successors).toSet()) {
     if (successor is nfa.Literal) {
-      addSuccessor(transitions, successor, new Range.single(successor.rune));
+      reserveTransition(transitions, new Range.single(successor.rune),
+          successor: successor);
     } else if (successor is nfa.CharacterSet) {
-      if (successor.negated) {
-        negated.add(successor);
-      } else {
+      if (!successor.negated) {
         for (final runes in successor.runes) {
-          addSuccessor(transitions, successor, runes);
+          reserveTransition(transitions, runes, successor: successor);
         }
+      } else {
+        // Reserve space for the area that will *not* have a transition on
+        // [successor].
+        for (final runes in successor.runes) {
+          reserveTransition(transitions, runes);
+        }
+        // Remember to add [successor] to all transitions *except*
+        // `successor.runes` later, but wait until [transitions] doesn't change
+        // anymore.
+        negated.add(successor);
       }
     } else {
-      defaultTransition.add(successor as nfa.Dot);
+      assert(successor is nfa.Dot);
+      defaultTransition.add(successor);
     }
   }
 
-  for (final successor in negated) {
-    for (final runes in successor.runes) {
-      addNegatedSuccessor(transitions, successor, runes);
-    }
-  }
   for (final transition in transitions) {
     transition.closure.addAll(defaultTransition);
+
+    for (final successor in negated) {
+      for (final runes in successor.runes) {
+        if (!runes.containsRange(transition)) {
+          assert(!runes.intersects(transition));
+          transition.closure.add(successor);
+        }
+      }
+    }
   }
-  defaultTransition.sort(_sortClosure);
 
   return new dfa.State(finalizeTransitions(transitions, lookupId),
-      defaultTransition: defaultTransition.isEmpty
-          ? dfa.State.errorId
-          : lookupId(defaultTransition),
+      defaultTransition: lookupId(defaultTransition.toList(growable: false)),
       accept: _highestPrecedencePattern(closure.map((state) => state.root)));
 }
 

@@ -80,7 +80,7 @@ class Literal extends State {
   String toString() => '${new String.fromCharCode(rune)}$repetition';
 }
 
-/// A dot pattern matches any single character except `\n`.
+/// A dot pattern matches any single character.
 class Dot extends State {
   Dot([Repetition repetition]) : super(repetition);
 

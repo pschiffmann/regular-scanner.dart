@@ -49,6 +49,8 @@ class Range {
 
   bool contains(int value) => min <= value && value <= max;
 
+  bool containsRange(Range other) => min <= other.min && other.max <= max;
+
   bool intersects(Range other) => other.min <= max && min <= other.max;
 
   @override
@@ -71,6 +73,8 @@ class SingleElementRange implements Range {
 
   @override
   bool contains(int value) => this.value == value;
+  @override
+  bool containsRange(Range other) => other.length == 1 && other.min == value;
   @override
   bool intersects(Range other) => other.contains(value);
 
