@@ -25,12 +25,9 @@ int binarySearch(final List<Range> sortedList, final int value) {
 /// elements.
 int leftmostIntersectionOrRightNeighbour(List<Range> sortedList, Range range) {
   // TODO: Is this possible in O(log n)?
-  for (var i = 0; i < sortedList.length; i++) {
-    if (sortedList[i].intersects(range)) {
-      return i;
-    }
-  }
-  return sortedList.length;
+  var i = 0;
+  for (; i < sortedList.length && sortedList[i].max < range.min; i++);
+  return i;
 }
 
 /// Represents an integer range from [min] to [max], both inclusive.
