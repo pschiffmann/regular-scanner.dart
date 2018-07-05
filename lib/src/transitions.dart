@@ -44,21 +44,24 @@ void reserveTransition(List<ConstructionTransition> transitions, Range range,
   }
 }
 
-/// Splits the element in [transitions] at index [replaceAt] into two new
-/// [ConstructionTransition]s that span the ranges [`min`, `min + splitAt - 1`] and
-/// [`min + splitAt`, `max`].
+/// Splits the element in [transitions] at index [splitElement] into two new
+/// [ConstructionTransition]s that span the ranges [`min`, `rightStart - 1`] and
+/// [`rightStart`, `max`].
 ///
 /// `min` and `max` refer to the respective properties of the element at index
-/// [replaceAt]. The new transitions contain the same `closure` as that element.
-void splitTransition(
-    List<ConstructionTransition> transitions, int replaceAt, int splitAt) {
-  final old = transitions[replaceAt];
+/// [splitElement]. The new transitions contain the same `closure` as that
+/// element.
+void splitTransition(List<ConstructionTransition> transitions, int splitElement,
+    int rightStart) {
+  final old = transitions[splitElement];
+  assert(old.min < rightStart && rightStart < old.max,
+      "Can't split off a transition with length 0");
   transitions
-    ..[replaceAt] = (new ConstructionTransition(old.min, old.min + splitAt - 1)
+    ..[splitElement] = (new ConstructionTransition(old.min, rightStart - 1)
       ..closure.addAll(old.closure))
     ..insert(
-        replaceAt + 1,
-        new ConstructionTransition(old.min + splitAt, old.max)
+        splitElement + 1,
+        new ConstructionTransition(rightStart, old.max)
           ..closure.addAll(old.closure));
 }
 

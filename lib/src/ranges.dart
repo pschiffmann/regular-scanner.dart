@@ -1,3 +1,5 @@
+import 'package:quiver/core.dart';
+
 /// Returns the index of the element in [sortedList] that contains [value], or
 /// `-1` if no such element exists.
 int binarySearch(final List<Range> sortedList, final int value) {
@@ -52,6 +54,14 @@ class Range {
   bool containsRange(Range other) => min <= other.min && other.max <= max;
 
   bool intersects(Range other) => other.min <= max && min <= other.max;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Range && other.min == min && other.max == max;
+
+  @override
+  int get hashCode => hash2(min, max);
 
   @override
   String toString() => '[$min, $max]';
