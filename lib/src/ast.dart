@@ -13,12 +13,10 @@ abstract class Expression {
   Expression(this._repetition);
 
   /// Trying to change this value after this expression has been sealed with a
-  /// [Root] will throw a [StateError].
+  /// [Root] will throw an [AssertionError].
   Repetition get repetition => _repetition;
   set repetition(Repetition repetition) {
-    if (root != null) {
-      throw new StateError('This expression tree has been sealed');
-    }
+    assert(root == null, 'This expression tree has been sealed');
     _repetition = repetition;
   }
 
@@ -117,9 +115,14 @@ class CharacterSet extends State {
 abstract class DelegatingExpression extends Expression {
   DelegatingExpression(Iterable<Expression> children, Repetition repetition)
       : children = new List.unmodifiable(children),
+        assert(
+            children.isNotEmpty,
+            'DelegatingExpressions must have children because leafs of the '
+            'expression tree must always be States'),
         super(repetition) {
     for (var i = 0; i < this.children.length; i++) {
-      assert(this.children[i]._parent == null);
+      assert(this.children[i]._parent == null,
+          '${this.children[i]} is already assigned to a parent');
       this.children[i]
         .._parent = this
         .._parentIndex = i;
@@ -200,7 +203,7 @@ class Sequence extends DelegatingExpression {
       if (!successor.optional) return;
     }
 
-    yield* parent.siblings(this);
+    if (parent != null) yield* parent.siblings(this);
 
     if (!repeat) return;
     for (final successor in first) {
@@ -236,12 +239,20 @@ class Alternation extends DelegatingExpression {
   }
 
   @override
-  Iterable<State> get last => first;
+  Iterable<State> get last sync* {
+    for (final child in children) {
+      if (child is State) {
+        yield child;
+      } else {
+        yield* (child as DelegatingExpression).last;
+      }
+    }
+  }
 
   @override
   Iterable<State> siblings(final Expression child) sync* {
     assert(child.parent == this);
-    yield* parent.siblings(this);
+    if (parent != null) yield* parent.siblings(this);
 
     if (!repeat) return;
     for (final successor in first) {
