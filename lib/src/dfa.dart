@@ -24,7 +24,7 @@ class State<T extends Pattern> {
 
   int successorFor(int guard) {
     final index = binarySearch(transitions, guard);
-    return index == -1 ? defaultTransition : transitions[index];
+    return index == errorId ? defaultTransition : transitions[index].successor;
   }
 }
 

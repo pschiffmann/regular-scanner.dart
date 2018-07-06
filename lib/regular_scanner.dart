@@ -14,6 +14,8 @@ import 'src/dfa.dart' show State;
 import 'src/parser.dart' show parse;
 import 'src/powerset_construction.dart' show constructDfa;
 
+export 'src/powerset_construction.dart' show ConflictingPatternException;
+
 /// This annotation marks a `const` variable as an injection point for a
 /// [Scanner], and specifies which [Pattern]s that scanner matches.
 class InjectScanner {
@@ -25,7 +27,7 @@ class InjectScanner {
 /// Used as an argument to [InjectScanner] to specify the patterns that this
 /// [Scanner] matches.
 class Pattern {
-  const Pattern(this.pattern, {this.precedence});
+  const Pattern(this.pattern, {this.precedence: 0}) : assert(precedence >= 0);
 
   final String pattern;
 

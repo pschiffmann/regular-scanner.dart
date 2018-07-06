@@ -1,7 +1,7 @@
 import 'package:regular_scanner/regular_scanner.dart' as rs;
 
 class NamedPattern extends rs.Pattern {
-  const NamedPattern(String pattern, this.name, {int precedence})
+  const NamedPattern(String pattern, this.name, {int precedence: 0})
       : super(pattern, precedence: precedence);
 
   final String name;
@@ -10,7 +10,7 @@ class NamedPattern extends rs.Pattern {
   String toString() => '$name ::= ${super.toString()}';
 }
 
-void main() {
+void main(List<String> args) {
   final patterns = [
     const NamedPattern(r'0b[01]+', 'binary'),
     const NamedPattern(r'0[0-7]+', 'octal', precedence: 1),
@@ -24,5 +24,14 @@ void main() {
     print('$i ${state.transitions}, '
         'default=${state.defaultTransition}, accept=${state.accept}');
   }
-  print(scanner.match('0123'.codeUnits.iterator));
+
+  for (final input in args) {
+    final m = scanner.match(input.codeUnits.iterator..moveNext());
+
+    if (m != null) {
+      print('$input [0, ${m.length}] matches ${m.pattern}');
+    } else {
+      print('$input does not match any pattern');
+    }
+  }
 }

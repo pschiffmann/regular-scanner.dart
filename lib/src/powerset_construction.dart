@@ -110,33 +110,38 @@ dfa.State constructState(
 
   return new dfa.State(finalizeTransitions(transitions, lookupId),
       defaultTransition: lookupId(defaultTransition.toList(growable: false)),
-      accept: _highestPrecedencePattern(closure.map((state) => state.root)));
+      accept: highestPrecedencePattern(closure
+          .where((state) => state.accepting)
+          .map((state) => state.root.pattern)));
 }
 
-/// Returns the element in [expressions] with the highest [Pattern.precedence],
-/// or `null` if [expressions] is empty. Throws an [Exception] if there is no
-/// single highest precedence pattern.
-T _highestPrecedencePattern<T extends Pattern>(Iterable<nfa.Root> expressions) {
-  T result;
-  for (final candidate in expressions.map((root) => root.pattern)) {
-    if (result == null) {
-      result = candidate;
+/// Returns the element in [patterns] with the highest [Pattern.precedence], or
+/// `null` if [patterns] is empty. Throws a [ConflictingPatternException] if
+/// there is no single highest precedence pattern.
+Pattern highestPrecedencePattern(Iterable<Pattern> patterns) {
+  final highestPrecedence = new Set<Pattern>();
+  for (final pattern in patterns) {
+    if (highestPrecedence.isEmpty) {
+      highestPrecedence.add(pattern);
       continue;
-    } else if (result == candidate) {
-      continue;
-    } else if (result.precedence == candidate.precedence) {
-      throw new Exception(
-          'Patterns $result and $candidate ambiguously match the same string. '
-          'Assign a `Pattern.precedence` to resolve this issue.');
     }
-    if (result.precedence == null) {
-      result = candidate;
-    } else if (candidate.precedence != null &&
-        candidate.precedence > result.precedence) {
-      result = candidate;
+    if (highestPrecedence.first.precedence == pattern.precedence) {
+      highestPrecedence.add(pattern);
+    } else if (pattern.precedence > highestPrecedence.first.precedence) {
+      highestPrecedence
+        ..clear()
+        ..add(pattern);
     }
   }
-  return result;
+
+  switch (highestPrecedence.length) {
+    case 0:
+      return null;
+    case 1:
+      return highestPrecedence.first;
+    default:
+      throw new ConflictingPatternException(highestPrecedence);
+  }
 }
 
 class NfaStartState implements nfa.State {
@@ -171,4 +176,15 @@ class NfaStartState implements nfa.State {
       throw new UnsupportedError('Undefined for this mock state');
   @override
   int get id => throw new UnsupportedError('Undefined for this mock state');
+}
+
+/// Thrown when multiple [Pattern]s in a scanner match the same input and all
+/// have the same [Pattern.precedence].
+class ConflictingPatternException implements Exception {
+  ConflictingPatternException(this.patterns) : assert(patterns.isNotEmpty);
+
+  final Set<Pattern> patterns;
+
+  @override
+  String toString() => '';
 }

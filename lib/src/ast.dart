@@ -283,6 +283,9 @@ class Root extends DelegatingExpression {
   }
 
   @override
+  bool get optional => child.optional;
+
+  @override
   DelegatingExpression get _parent =>
       throw new UnsupportedError("Root can't have a parent");
   @override
