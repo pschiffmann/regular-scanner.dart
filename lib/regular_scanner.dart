@@ -72,12 +72,14 @@ class Scanner<T extends Pattern> {
     var nextState = State.startId;
     var steps = 0;
     MatchResult<T> result;
-    while (nextState != State.errorId && characters.current != null) {
+    while (nextState != State.errorId) {
       final state = states[nextState];
       if (state.accept != null) {
         result = new MatchResult(state.accept, steps);
       }
-
+      if (characters.current == null) {
+        break;
+      }
       nextState = state.successorFor(characters.current);
       characters.moveNext();
       steps++;
