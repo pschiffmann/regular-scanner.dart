@@ -1,6 +1,6 @@
 import 'dart:core' hide Pattern;
 
-import '../regular_scanner.dart' show Pattern;
+import '../regular_scanner.dart';
 import 'ranges.dart';
 
 class State<T extends Pattern> {
@@ -40,6 +40,40 @@ class Transition extends Range {
       ? '${new String.fromCharCode(min)} -> $successor'
       : '[${new String.fromCharCode(min)}-${new String.fromCharCode(max)}] '
       '-> $successor';
+}
+
+class TableDrivenScanner<T extends Pattern> implements Scanner<T> {
+  const TableDrivenScanner(this.states);
+
+  final List<State<T>> states;
+
+  @override
+  MatchResult<T> match(Iterator<int> characters, {bool rewind: false}) {
+    var nextState = State.startId;
+    var steps = 0;
+    MatchResult<T> result;
+    while (nextState != State.errorId) {
+      final state = states[nextState];
+      if (state.accept != null) {
+        result = new MatchResult(state.accept, steps);
+      }
+      if (characters.current == null) {
+        break;
+      }
+      nextState = state.successorFor(characters.current);
+      characters.moveNext();
+      steps++;
+    }
+
+    if (rewind) {
+      final it = characters as BidirectionalIterator;
+      final stepsBack = result == null ? steps : steps - result.length;
+      for (var i = 0; i < stepsBack; i++) {
+        it.movePrevious();
+      }
+    }
+    return result;
+  }
 }
 
 class SingleGuardTransition extends SingleElementRange implements Transition {

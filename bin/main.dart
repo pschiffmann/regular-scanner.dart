@@ -1,4 +1,5 @@
 import 'package:regular_scanner/regular_scanner.dart' as rs;
+import 'package:regular_scanner/src/dfa.dart';
 
 class NamedPattern extends rs.Pattern {
   const NamedPattern(String pattern, this.name, {int precedence: 0})
@@ -18,7 +19,7 @@ void main(List<String> args) {
     const NamedPattern(r'0x[0-9A-Fa-f]+', 'hexadecimal'),
     const NamedPattern(r'[ \t\r\n]+', 'whitespace')
   ];
-  final scanner = new rs.Scanner(patterns);
+  final TableDrivenScanner scanner = new rs.Scanner(patterns);
   for (var i = 0; i < scanner.states.length; i++) {
     final state = scanner.states[i];
     print('$i ${state.transitions}, '

@@ -10,7 +10,7 @@ library regular_scanner.scanner;
 import 'dart:core' hide Pattern;
 import 'dart:core' as core show Pattern;
 
-import 'src/dfa.dart' show State;
+import 'src/dfa.dart' show State, TableDrivenScanner;
 import 'src/parser.dart' show parse;
 import 'src/powerset_construction.dart' show constructDfa;
 
@@ -44,15 +44,14 @@ class MatchResult<T extends Pattern> {
   final int length;
 }
 
-class Scanner<T extends Pattern> {
+abstract class Scanner<T extends Pattern> {
   factory Scanner(Iterable<Pattern> patterns) => new Scanner.withParseTable(
       constructDfa(patterns.map(parse).toList(growable: false)));
 
   /// Internal constructor. Only visible so that generated code can instantiate
   /// this class as a `const` expression.
-  const Scanner.withParseTable(this.states);
-
-  final List<State<T>> states;
+  const factory Scanner.withParseTable(List<State<T>> states) =
+      TableDrivenScanner<T>;
 
   /// Matches [characters] against the patterns in this scanner. Returns the
   /// longest possible match, or `null` if no pattern matched.
@@ -68,30 +67,5 @@ class Scanner<T extends Pattern> {
   ///
   /// To match strings, obtain a compatible iterator from [String.codeUnits] or
   /// [String.runes].
-  MatchResult<T> match(Iterator<int> characters, {bool rewind: false}) {
-    var nextState = State.startId;
-    var steps = 0;
-    MatchResult<T> result;
-    while (nextState != State.errorId) {
-      final state = states[nextState];
-      if (state.accept != null) {
-        result = new MatchResult(state.accept, steps);
-      }
-      if (characters.current == null) {
-        break;
-      }
-      nextState = state.successorFor(characters.current);
-      characters.moveNext();
-      steps++;
-    }
-
-    if (rewind) {
-      final it = characters as BidirectionalIterator;
-      final stepsBack = result == null ? steps : steps - result.length;
-      for (var i = 0; i < stepsBack; i++) {
-        it.movePrevious();
-      }
-    }
-    return result;
-  }
+  MatchResult<T> match(Iterator<int> characters, {bool rewind: false});
 }
