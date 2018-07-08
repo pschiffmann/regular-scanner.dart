@@ -7,7 +7,8 @@ const IterableEquality<nfa.State> closureEquality = const IterableEquality();
 /// concrete order doesn't matter, but it needs to be unambiguous so that
 /// [closureEquality] recognizes semantically equal closures as equal.
 int sortClosure(nfa.State a, nfa.State b) => a.root != b.root
-    ? a.root.pattern.pattern.compareTo(b.root.pattern.pattern)
+    ? a.root.pattern.regularExpression
+        .compareTo(b.root.pattern.regularExpression)
     : a.id - b.id;
 
 /// Returns a new [SplayTreeSet] that can be used to construct new closures

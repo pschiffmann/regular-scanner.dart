@@ -166,9 +166,10 @@ class TokenIterator implements Iterator<int> {
 /// Parses [pattern] into an [Expression] tree. Throws a [FormatException] on
 /// invalid patterns.
 Root parse(Pattern pattern) {
-  final context = new TokenIterator(pattern.pattern);
+  final context = new TokenIterator(pattern.regularExpression);
   if (!context.moveNext()) {
-    throw new FormatException('Empty pattern', pattern.pattern);
+    throw new FormatException(
+        'Empty regular expression', pattern.regularExpression);
   }
   final expression = parseUnknown(context, expectGroupEnd: false);
   assert(context.type == null);

@@ -27,14 +27,15 @@ class InjectScanner {
 /// Used as an argument to [InjectScanner] to specify the patterns that this
 /// [Scanner] matches.
 class Pattern {
-  const Pattern(this.pattern, {this.precedence: 0}) : assert(precedence >= 0);
+  const Pattern(this.regularExpression, {this.precedence: 0})
+      : assert(precedence >= 0);
 
-  final String pattern;
+  final String regularExpression;
 
   final int precedence;
 
   @override
-  String toString() => '/$pattern/';
+  String toString() => '/$regularExpression/';
 }
 
 class MatchResult<T extends Pattern> {
