@@ -46,7 +46,7 @@ class MatchResult<T extends Pattern> {
 }
 
 abstract class Scanner<T extends Pattern> {
-  factory Scanner(Iterable<Pattern> patterns) => new Scanner.withParseTable(
+  factory Scanner(Iterable<T> patterns) => new Scanner.withParseTable(
       constructDfa(patterns.map(parse).toList(growable: false)));
 
   /// Internal constructor. Only visible so that generated code can instantiate
