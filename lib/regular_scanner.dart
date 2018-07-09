@@ -14,6 +14,7 @@ import 'src/dfa.dart' show State, TableDrivenScanner;
 import 'src/parser.dart' show parse;
 import 'src/powerset_construction.dart' show constructDfa;
 
+export 'src/dfa.dart' show State, Transition;
 export 'src/powerset_construction.dart' show ConflictingPatternException;
 
 /// This annotation marks a `const` variable as an injection point for a

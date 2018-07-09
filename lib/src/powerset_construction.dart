@@ -43,7 +43,7 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
         });
 
   /// The fully constructed states.
-  final states = <dfa.State>[];
+  final states = <dfa.State<T>>[];
 
   // Initialize [queue] with a start state. Its closure doesn't need to be
   // sorted because it is never looked up again.
@@ -53,7 +53,7 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
     final id = unresolved.first.value;
     unresolved.removeFirst();
 
-    final state = constructState(closure, lookupId);
+    final state = constructState<T>(closure, lookupId);
 
     assert(states.length == id);
     states.add(state);
@@ -64,7 +64,7 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
 
 /// Constructs an [nfa.State] from [closure]. [lookupId] is used to resolve the
 /// ids of successors of this state.
-dfa.State constructState(
+dfa.State<T> constructState<T extends Pattern>(
     List<nfa.State> closure, int Function(List<nfa.State>) lookupId) {
   final transitions = <ConstructionTransition>[];
   final negated = <nfa.CharacterSet>[];
