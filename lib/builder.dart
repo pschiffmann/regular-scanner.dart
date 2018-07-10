@@ -14,8 +14,6 @@ import 'regular_scanner.dart';
 const regularScannerLibraryUri = 'package:regular_scanner/regular_scanner.dart';
 const generatedNamesPrefix = r'_$';
 
-const isInjectScanner = const TypeChecker.fromRuntime(Pattern);
-
 /// The [BuilderFactory] that is specified in `build.yaml`.
 Builder scannerBuilder(BuilderOptions options) =>
     new PartBuilder([new TableDrivenScannerGenerator()],
@@ -108,9 +106,9 @@ String resolvePatternTypeName(TopLevelVariableElement variable) {
   return (type as ParameterizedType).typeArguments.single.name;
 }
 
-/// If [regularScannerLibraryUri] was imported with a library prefix, returns the prefix
-/// String that has to be prepended in generated code to access names from this
-/// package.
+/// If [regularScannerLibraryUri] was imported with a library prefix, returns
+/// the prefix String that has to be prepended in generated code to access names
+/// from this package.
 ///
 /// For example, if a library contains the import statement
 /// ```dart
@@ -147,14 +145,14 @@ Map<String, String> resolvePrefixes(LibraryElement library) {
 /// An instance of this class represents a pattern from an [InjectScanner]
 /// annotation. It contains the [regularExpression] and [precedence] that are
 /// needed for the scanner construction algorithm, and the information how to
-/// reconstruct the initial annotation argument. Because
+/// reconstruct the initial annotation argument.
 class PatternWithInitializer extends Pattern {
   PatternWithInitializer(
       String regularExpression, int precedence, this.initializerExpression)
       : super(regularExpression, precedence: precedence);
 
   factory PatternWithInitializer.fromAnnotation(ConstantReader pattern) {
-    assert(pattern.instanceOf(isInjectScanner));
+    assert(pattern.instanceOf(const TypeChecker.fromRuntime(Pattern)));
 
     final regexpString = pattern.read('regularExpression').stringValue;
     final precedence = pattern.read('precedence').intValue;

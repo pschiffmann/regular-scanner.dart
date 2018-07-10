@@ -16,8 +16,15 @@
       "request": "launch",
       "type": "dart",
       "args": [
-        "build"
+        "build",
+        "--delete-conflicting-outputs"
       ]
+    },
+    {
+      "name": "debug",
+      "program": "test/transitions_test.dart",
+      "request": "launch",
+      "type": "dart"
     }
   ]
 }
