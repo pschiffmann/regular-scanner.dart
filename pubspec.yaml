@@ -1,4 +1,5 @@
 name: regular_scanner
+description: A `Scanner` class that matches an input string against multiple regular expressions.
 version: 0.1.0
 dependencies:
   analyzer: any

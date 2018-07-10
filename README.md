@@ -1,4 +1,7 @@
-This package exposes a `Scanner` class that matches an input string against multiple regular expressions.
+regular_scanner
+===============
+
+A `Scanner` class that matches an input string against multiple regular expressions.
 
 ```dart
 @InjectScanner([
@@ -30,9 +33,9 @@ If the patterns are compile-time constant – like in the example above – the 
 Early error detection
 ---------------------
 
-Since the DFA knows all possible paths through the patterns, it is possible to detect when multiple patterns match the same input.
-In this case, the `Scanner` constructor throws an exception.
-To resolve this problem, specify which is the intended result by assigning it a higher _precedence_ value.
+Since the DFA knows all possible paths through the patterns, it is possible to detect ambiguities.
+When multiple patterns match the same input, the `Scanner` constructor throws an exception.
+To resolve this problem, specify which pattern should "win" by assigning it a higher _precedence_ value.
 
 Syntax
 ------
