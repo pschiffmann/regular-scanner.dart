@@ -30,8 +30,6 @@ abstract class Expression {
   /// The index in [DelegatingExpression.children] where `this` is stored.
   int _parentIndex;
 
-  Iterable<State> get leafs;
-
   bool get optional => repetition.optional;
   bool get repeat => repetition.repeat;
 }
@@ -52,9 +50,6 @@ abstract class State extends Expression {
   /// These variables may only be set by [new Root].
   bool _accepting = false;
   int _id;
-
-  @override
-  Iterable<State> get leafs => [this];
 
   /// Returns all states that are reachable from this state with a single
   /// transition.
@@ -131,8 +126,15 @@ abstract class DelegatingExpression extends Expression {
 
   final List<Expression> children;
 
-  @override
-  Iterable<State> get leafs => children.expand((child) => child.leafs);
+  Iterable<State> get leafs sync* {
+    for (final child in children) {
+      if (child is State) {
+        yield child;
+      } else {
+        yield* (child as DelegatingExpression).leafs;
+      }
+    }
+  }
 
   /// Returns all recursive children of type [State] in this subtree that can
   /// be reached with a single transition from a preceding expression.
@@ -296,9 +298,6 @@ class Root extends DelegatingExpression {
 
   Expression get child => children.first;
   final Pattern pattern;
-
-  @override
-  Iterable<State> get leafs => child.leafs;
 
   @override
   Iterable<State> get first =>

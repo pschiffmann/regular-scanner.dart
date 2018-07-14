@@ -1,3 +1,4 @@
+import 'package:charcode/ascii.dart';
 import 'package:regular_scanner/src/ast.dart';
 import 'package:test/test.dart';
 
@@ -126,5 +127,47 @@ void main() {
         expect(union.repeat, left.repeat || right.repeat);
       }
     }
+  });
+
+  group('tree traversal example:', () {
+    // a?(b?(cd|e+))*
+    final a = new Literal($a, Repetition.zeroOrOne);
+    final b = new Literal($b, Repetition.zeroOrOne);
+    final c = new Literal($c);
+    final d = new Literal($d);
+    final e = new Literal($e, Repetition.oneOrMore);
+    final root = new Root(
+        new Sequence([
+          a,
+          new Sequence([
+            b,
+            new Alternation([
+              new Sequence([c, d]),
+              e
+            ])
+          ], Repetition.zeroOrMore)
+        ]),
+        null);
+
+    test('finds correct `root.leafs`', () {
+      expect(root.leafs, unorderedEquals([a, b, c, d, e]));
+    });
+
+    test('finds correct `root.first`', () {
+      expect(root.first, unorderedEquals([a, b, c, e]));
+    });
+
+    test('finds correct `root.last`', () {
+      expect(root.last, unorderedEquals([a, d, e]));
+    });
+
+    group('finds correct `successors`', () {
+      test('of `a`', () => expect(a.successors, unorderedEquals([b, c, e])));
+      test('of `b`', () => expect(b.successors, unorderedEquals([c, e])));
+      test('of `c`', () => expect(c.successors, unorderedEquals([d])));
+      test('of `d`', () => expect(d.successors, unorderedEquals([b, c, e])));
+      test('of `e`',
+          () => expect(e.successors.toSet(), unorderedEquals([b, c, e])));
+    });
   });
 }
