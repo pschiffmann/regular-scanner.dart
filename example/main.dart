@@ -2,10 +2,7 @@ import 'package:regular_scanner/regular_scanner.dart' as rs;
 
 part 'main.g.dart';
 
-final source = '''
-''';
-
-const NamedPattern whitespace = const NamedPattern('[ \t\r\n]+', 'whitespace');
+const whitespace = const NamedPattern('[ \t\r\n]+', 'whitespace');
 
 @rs.InjectScanner([
   const NamedPattern('0b[01]+', 'binary'),
@@ -23,16 +20,27 @@ class NamedPattern extends rs.Pattern {
   final String name;
 }
 
-void main() {
-  final it = source.runes.iterator..moveNext();
-  while (it.current != null) {
-    final start = it.rawIndex;
-    final match = scanner.match(it);
-    if (match == null) {
-      print('Unexpected character ${it.current}');
-    } else if (match.pattern != whitespace) {
-      print('${source.substring(start, match.length)} '
-          'is a ${match.pattern.name} number');
+void main(List<String> args) {
+  if (args.isEmpty) {
+    print('Pass command line arguments to this program to check whether they '
+        'match a pattern');
+    return;
+  }
+
+  for (final input in args) {
+    print('Matching $input:');
+    final it = input.runes.iterator..moveNext();
+    while (it.current != null) {
+      final start = it.rawIndex;
+      final match = scanner.match(it);
+      if (match == null) {
+        print('- Match failed at character ${it.current}');
+      } else if (match.pattern == whitespace) {
+        print('- skipping over ${it.current - start} whitespace characters');
+      } else {
+        print('- ${input.substring(start, match.length)} '
+            'matches pattern ${match.pattern.name}');
+      }
     }
   }
 }
