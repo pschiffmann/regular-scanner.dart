@@ -64,8 +64,9 @@ abstract class Scanner<T extends Pattern> {
   /// least [MatchResult.length] positions, but possibly more.
   ///
   /// If [rewind] is `true`, [characters] will be moved back to point exactly
-  /// behind the last matched character. This requires [characters] to be a
-  /// [BidirectionalIterator].
+  /// behind the last matched character. This way, the same iterator can be
+  /// immediately passed to this method again to match the remaining input.
+  /// This requires [characters] to be a [BidirectionalIterator].
   ///
   /// To match strings, obtain a compatible iterator from [String.codeUnits] or
   /// [String.runes].
