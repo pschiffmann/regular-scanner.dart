@@ -49,7 +49,7 @@ String resolveLocalName(ClassElement cls) {
   }
   for (final import in hostLibrary.imports) {
     final localName =
-        import.prefix == null ? className : '${import.name}$className';
+        import.prefix == null ? className : '${import.name}.$className';
     if (import.namespace.get(localName) == cls) {
       return localName;
     }
