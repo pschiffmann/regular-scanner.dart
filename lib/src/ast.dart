@@ -209,8 +209,8 @@ class Sequence extends DelegatingExpression {
 
     if (!repeat) return;
     for (final successor in first) {
-      if (successor == child) return;
       yield successor;
+      if (successor == child) return;
     }
   }
 
@@ -257,9 +257,7 @@ class Alternation extends DelegatingExpression {
     if (parent != null) yield* parent.siblings(this);
 
     if (!repeat) return;
-    for (final successor in first) {
-      if (successor != child) yield successor;
-    }
+    yield* first;
   }
 
   @override
