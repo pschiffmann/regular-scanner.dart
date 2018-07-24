@@ -7,8 +7,8 @@ import 'package:test/test.dart';
 class MockState extends Mock implements State {}
 
 void main() {
-  final state1 = new MockState();
-  final state2 = new MockState();
+  final state1 = MockState();
+  final state2 = MockState();
   when(state1.id).thenReturn(1);
   when(state2.id).thenReturn(10);
 
@@ -22,9 +22,7 @@ void main() {
     });
 
     test('ignores non-intersecting left transitions', () {
-      final transitions = [
-        new ConstructionTransition(10, 20)..closure.add(state1)
-      ];
+      final transitions = [ConstructionTransition(10, 20)..closure.add(state1)];
       reserveTransition(transitions, const Range(23, 24), successor: state2);
       expect(transitions.length, 2);
       expect(transitions[0], const Range(10, 20));
@@ -34,9 +32,7 @@ void main() {
     });
 
     test('ignores non-intersecting right transitions', () {
-      final transitions = [
-        new ConstructionTransition(10, 20)..closure.add(state1)
-      ];
+      final transitions = [ConstructionTransition(10, 20)..closure.add(state1)];
       reserveTransition(transitions, const Range(4, 6), successor: state2);
       expect(transitions.length, 2);
       expect(transitions[0], const Range(4, 6));
@@ -46,9 +42,7 @@ void main() {
     });
 
     test('splits the first intersection if it starts left of range', () {
-      final transitions = [
-        new ConstructionTransition(10, 20)..closure.add(state1)
-      ];
+      final transitions = [ConstructionTransition(10, 20)..closure.add(state1)];
       reserveTransition(transitions, const Range(12, 20), successor: state2);
       expect(transitions.length, 2);
       expect(transitions[0], const Range(10, 11));
@@ -60,9 +54,7 @@ void main() {
     test(
         'inserts a left transition if the first '
         'intersection starts inside range', () {
-      final transitions = [
-        new ConstructionTransition(10, 20)..closure.add(state1)
-      ];
+      final transitions = [ConstructionTransition(10, 20)..closure.add(state1)];
       reserveTransition(transitions, const Range(8, 20), successor: state2);
       expect(transitions.length, 2);
       expect(transitions[0], const Range(8, 9));
@@ -73,8 +65,8 @@ void main() {
 
     test('adds `successor` to all transitions contained in `range`', () {
       final transitions = [
-        new ConstructionTransition(10, 20)..closure.add(state1),
-        new ConstructionTransition(21, 30)
+        ConstructionTransition(10, 20)..closure.add(state1),
+        ConstructionTransition(21, 30)
       ];
       reserveTransition(transitions, const Range(10, 30), successor: state2);
       expect(transitions.length, 2);
@@ -84,8 +76,8 @@ void main() {
 
     test('inserts new transitions to fill in gaps', () {
       final transitions = [
-        new ConstructionTransition(10, 15)..closure.add(state1),
-        new ConstructionTransition(20, 25)
+        ConstructionTransition(10, 15)..closure.add(state1),
+        ConstructionTransition(20, 25)
       ];
       reserveTransition(transitions, const Range(10, 25), successor: state2);
       expect(transitions.length, 3);
@@ -96,9 +88,7 @@ void main() {
     });
 
     test('splits the last intersection if it ends right of range', () {
-      final transitions = [
-        new ConstructionTransition(10, 25)..closure.add(state1)
-      ];
+      final transitions = [ConstructionTransition(10, 25)..closure.add(state1)];
       reserveTransition(transitions, const Range(10, 20), successor: state2);
       expect(transitions.length, 2);
       expect(transitions[0], const Range(10, 20));
@@ -110,9 +100,7 @@ void main() {
     test(
         'inserts a right transition if the last intersection ends inside range',
         () {
-      final transitions = [
-        new ConstructionTransition(10, 20)..closure.add(state1)
-      ];
+      final transitions = [ConstructionTransition(10, 20)..closure.add(state1)];
       reserveTransition(transitions, const Range(10, 25), successor: state2);
       expect(transitions.length, 2);
       expect(transitions[0], const Range(10, 20));
@@ -124,9 +112,9 @@ void main() {
     test('handles all the things above at once (range spans all transitions)',
         () {
       final transitions = [
-        new ConstructionTransition(10, 15)..closure.add(state1),
-        new ConstructionTransition(16, 18)..closure.add(state1),
-        new ConstructionTransition(20, 22)
+        ConstructionTransition(10, 15)..closure.add(state1),
+        ConstructionTransition(16, 18)..closure.add(state1),
+        ConstructionTransition(20, 22)
       ];
       reserveTransition(transitions, const Range(8, 25), successor: state2);
       expect(transitions.length, 6);
@@ -147,9 +135,8 @@ void main() {
 
   group('splitTransition', () {
     List<ConstructionTransition> transitions;
-    setUp(() => transitions = [
-          new ConstructionTransition(10, 20)..closure.add(state1)
-        ]);
+    setUp(() =>
+        transitions = [ConstructionTransition(10, 20)..closure.add(state1)]);
 
     test('splits at the correct position', () {
       splitTransition(transitions, 0, 15);
@@ -179,8 +166,8 @@ void main() {
 
     test("doesn't merge non-adjacent transitions", () {
       final result = finalizeTransitions([
-        new ConstructionTransition(10, 11)..closure.add(state1),
-        new ConstructionTransition(13, 15)..closure.add(state1)
+        ConstructionTransition(10, 11)..closure.add(state1),
+        ConstructionTransition(13, 15)..closure.add(state1)
       ], lookupId);
       expect(result.length, 2);
       expect(result[0].successor, 1);
@@ -189,8 +176,8 @@ void main() {
 
     test("doesn't merge adjacent transitions with different closure", () {
       final result = finalizeTransitions([
-        new ConstructionTransition(10, 11)..closure.add(state1),
-        new ConstructionTransition(12, 15)..closure.addAll([state1, state2])
+        ConstructionTransition(10, 11)..closure.add(state1),
+        ConstructionTransition(12, 15)..closure.addAll([state1, state2])
       ], lookupId);
       expect(result.length, 2);
       expect(result[0].successor, 1);
@@ -199,8 +186,8 @@ void main() {
 
     test('merges adjacent transitions with same closure', () {
       final result = finalizeTransitions([
-        new ConstructionTransition(10, 11)..closure.add(state1),
-        new ConstructionTransition(12, 15)..closure.add(state1)
+        ConstructionTransition(10, 11)..closure.add(state1),
+        ConstructionTransition(12, 15)..closure.add(state1)
       ], lookupId);
       expect(result.length, 1);
       expect(result[0], const Range(10, 15));

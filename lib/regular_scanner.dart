@@ -28,7 +28,7 @@ class InjectScanner {
 /// Used as an argument to [InjectScanner] to specify the patterns that this
 /// [Scanner] matches.
 class Pattern {
-  const Pattern(this.regularExpression, {this.precedence: 0})
+  const Pattern(this.regularExpression, {this.precedence = 0})
       : assert(precedence >= 0);
 
   final String regularExpression;
@@ -47,7 +47,7 @@ class MatchResult<T extends Pattern> {
 }
 
 abstract class Scanner<T extends Pattern> {
-  factory Scanner(Iterable<T> patterns) => new Scanner.withParseTable(
+  factory Scanner(Iterable<T> patterns) => Scanner.withParseTable(
       constructDfa(patterns.map(parse).toList(growable: false)));
 
   /// Internal constructor. Only visible so that generated code can instantiate
@@ -70,5 +70,5 @@ abstract class Scanner<T extends Pattern> {
   ///
   /// To match strings, obtain a compatible iterator from [String.codeUnits] or
   /// [String.runes].
-  MatchResult<T> match(Iterator<int> characters, {bool rewind: false});
+  MatchResult<T> match(Iterator<int> characters, {bool rewind = false});
 }

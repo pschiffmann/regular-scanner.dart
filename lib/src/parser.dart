@@ -47,15 +47,15 @@ enum TokenType {
   setNegation
 }
 
-const List<int> escapeNormal = const [$backslash];
-const List<int> escapeCharacterSet = const [$backslash];
+const List<int> escapeNormal = [$backslash];
+const List<int> escapeCharacterSet = [$backslash];
 
 /// Presents [pattern] as a sequence of regular expression tokens. [current]
 /// contains the rune, or lexeme, and [type] contains the resolved type for that
 /// token. Backslash-escaped characters are recognized as [TokenType.literal]
 /// tokens, and the escape characters are not exposed as iteration elements.
 class TokenIterator implements Iterator<int> {
-  TokenIterator(this.pattern) : _runes = new RuneIterator(pattern);
+  TokenIterator(this.pattern) : _runes = RuneIterator(pattern);
 
   /// This string that is scanned by this iterator.
   final String pattern;
@@ -126,7 +126,7 @@ class TokenIterator implements Iterator<int> {
       default:
         return TokenType.literal;
     }
-    throw new UnimplementedError('This line is unreachable');
+    throw UnimplementedError('This line is unreachable');
   }
 
   /// Resolve the [type] of [current] while [insideCharacterSet] is `true`.
@@ -155,39 +155,39 @@ class TokenIterator implements Iterator<int> {
       default:
         return TokenType.literal;
     }
-    throw new UnimplementedError('This line is unreachable');
+    throw UnimplementedError('This line is unreachable');
   }
 
   /// Convenience method to throw a [FormatException] with [message] and
   /// [offset]. Uses the rune index of [current] if [offset] is omitted.
   @alwaysThrows
   void error(String message, [int offset]) =>
-      throw new FormatException(message, pattern, offset ?? index);
+      throw FormatException(message, pattern, offset ?? index);
 }
 
 /// Parses [pattern] into an [Expression] tree. Throws a [FormatException] on
 /// invalid patterns.
 Root parse(Pattern pattern) {
-  final context = new TokenIterator(pattern.regularExpression);
+  final context = TokenIterator(pattern.regularExpression);
   if (!context.moveNext()) {
-    throw new FormatException(
+    throw FormatException(
         'Empty regular expression', pattern.regularExpression);
   }
   final expression = parseUnknown(context, expectGroupEnd: false);
   assert(context.type == null);
 
-  return new Root(expression, pattern);
+  return Root(expression, pattern);
 }
 
 Literal parseLiteral(TokenIterator context) {
   assert(context.type == TokenType.literal);
   final char = context.current;
-  return new Literal(char, parseRepetiton(context..moveNext()));
+  return Literal(char, parseRepetiton(context..moveNext()));
 }
 
 Dot parseDot(TokenIterator context) {
   assert(context.type == TokenType.dot);
-  return new Dot(parseRepetiton(context..moveNext()));
+  return Dot(parseRepetiton(context..moveNext()));
 }
 
 /// If the current token is a repetition, returns the according repetition
@@ -206,7 +206,7 @@ Repetition parseRepetiton(TokenIterator context) {
     case $asterisk:
       return Repetition.zeroOrMore;
     default:
-      throw new UnimplementedError('This case is unreachable');
+      throw UnimplementedError('This case is unreachable');
   }
 }
 
@@ -233,7 +233,7 @@ Expression parseUnknown(TokenIterator context,
         alternatives.add(sequence.first);
         break;
       default:
-        alternatives.add(new Sequence(sequence));
+        alternatives.add(Sequence(sequence));
         break;
     }
     sequence.clear();
@@ -270,14 +270,14 @@ Expression parseUnknown(TokenIterator context,
         context.error('Unbalanced `]`');
         break;
       default:
-        throw new UnimplementedError('This case is unreachable');
+        throw UnimplementedError('This case is unreachable');
     }
   }
   nextAlternative();
 
   return alternatives.length == 1
       ? alternatives.first
-      : new Alternation(alternatives);
+      : Alternation(alternatives);
 }
 
 Expression parseGroup(TokenIterator context) {
@@ -316,7 +316,7 @@ CharacterSet parseCharacterSet(TokenIterator context) {
         final lowerBound = context.current;
         context.moveNext();
         if (context.type != TokenType.rangeSeparator) {
-          runes.add(new Range.single(lowerBound));
+          runes.add(Range.single(lowerBound));
           break;
         }
         context.moveNext();
@@ -326,7 +326,7 @@ CharacterSet parseCharacterSet(TokenIterator context) {
         } else if (context.type != TokenType.literal) {
           continue unescapedSpecialCharacter;
         }
-        runes.add(new Range(lowerBound, context.current));
+        runes.add(Range(lowerBound, context.current));
         context.moveNext();
         break;
       unescapedSpecialCharacter:
@@ -334,13 +334,13 @@ CharacterSet parseCharacterSet(TokenIterator context) {
       case TokenType.rangeSeparator:
       case TokenType.setNegation:
         context.error(
-            '`${new String.fromCharCode(context.current)}` must be escaped in '
+            '`${String.fromCharCode(context.current)}` must be escaped in '
             'character sets, even if it is the first or last character');
         break;
       case TokenType.characterSetEnd:
         break loop;
       default:
-        throw new UnimplementedError('This case is unreachable');
+        throw UnimplementedError('This case is unreachable');
     }
   }
 
@@ -351,5 +351,5 @@ CharacterSet parseCharacterSet(TokenIterator context) {
     ..insideCharacterSet = false
     ..moveNext();
 
-  return new CharacterSet(runes, negated)..repetition = parseRepetiton(context);
+  return CharacterSet(runes, negated)..repetition = parseRepetiton(context);
 }

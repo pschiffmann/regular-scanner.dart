@@ -22,7 +22,7 @@ void main() {
   });
 
   group('constructState', () {
-    final stateIds = new LinkedHashMap<List<nfa.State>, int>(
+    final stateIds = LinkedHashMap<List<nfa.State>, int>(
         equals: closureEquality.equals, hashCode: closureEquality.hash);
 
     int lookupId(List<nfa.State> closure) => closure.isEmpty

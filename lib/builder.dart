@@ -28,7 +28,7 @@ LibraryElement get hostLibrary => Zone.current[#hostLibrary];
 
 /// The [BuilderFactory] that is specified in `build.yaml`.
 Builder scannerBuilder(BuilderOptions options) =>
-    new PartBuilder([new TableDrivenScannerGenerator()],
+    PartBuilder([TableDrivenScannerGenerator()],
         header: options.config['header'] as String);
 
 /// Returns the local name of [cls], as visible in [hostLibrary].
@@ -54,7 +54,7 @@ String resolveLocalName(ClassElement cls) {
       return localName;
     }
   }
-  throw new InvalidGenerationSourceError(
+  throw InvalidGenerationSourceError(
       '${cls.name} is not visible in the current source file',
       todo: "Import library `${cls.library}`, and don't hide this class");
 }
@@ -75,7 +75,7 @@ abstract class ScannerGenerator extends GeneratorForAnnotation<InjectScanner> {
           resolveInjectScannerArguments(variable, annotation.objectValue);
       final patternType = resolvePatternType(variable);
 
-      return generateScanner(new Scanner<PatternWithInitializer>(patterns),
+      return generateScanner(Scanner<PatternWithInitializer>(patterns),
           variable.name, patternType);
     }, zoneValues: {
       #regularScannerLibrary: annotation.objectValue.type.element.library,
@@ -104,20 +104,20 @@ abstract class ScannerGenerator extends GeneratorForAnnotation<InjectScanner> {
 ///     `'_$' + variableName`.
 TopLevelVariableElement validateAnnotatedElement(Element element) {
   if (element is! TopLevelVariableElement) {
-    throw new InvalidGenerationSourceError(
+    throw InvalidGenerationSourceError(
         '@InjectScanner must annotate a top level variable',
         element: element);
   }
   final TopLevelVariableElement variable = element;
   if (!variable.isConst) {
-    throw new InvalidGenerationSourceError(
+    throw InvalidGenerationSourceError(
         '@InjectScanner must annotate a `const` variable',
         element: variable);
   }
   final expectedInitializer = generatedNamesPrefix + variable.name;
   final initializer = variable.computeNode().initializer;
   if (!(initializer is Identifier && initializer.name == expectedInitializer)) {
-    throw new InvalidGenerationSourceError(
+    throw InvalidGenerationSourceError(
         'The injection point must be initialized to `$expectedInitializer`, '
         ' the generated variable that holds the scanner',
         element: variable);
@@ -131,7 +131,7 @@ List<PatternWithInitializer> resolveInjectScannerArguments(
     TopLevelVariableElement variable, DartObject injectScanner) {
   final patterns = injectScanner.getField('patterns')?.toListValue();
   if (patterns == null || patterns.isEmpty) {
-    throw new InvalidGenerationSourceError(
+    throw InvalidGenerationSourceError(
         'The @InjectScanner pattern list must not be empty',
         element: variable);
   }
@@ -147,15 +147,15 @@ List<PatternWithInitializer> resolveInjectScannerArguments(
 
     final result = <PatternWithInitializer>[];
     for (var i = 0; i < initializers.length; i++) {
-      final pattern = new ConstantReader(patterns[i]);
-      result.add(new PatternWithInitializer(
+      final pattern = ConstantReader(patterns[i]);
+      result.add(PatternWithInitializer(
           pattern.read('regularExpression').stringValue,
           pattern.read('precedence').intValue,
           initializers[i].toSource()));
     }
     return result;
   }
-  throw new UnimplementedError(
+  throw UnimplementedError(
       'Reaching this line means we skipped over the relevant annotation – '
       "that's a bug");
 }
@@ -168,7 +168,7 @@ ClassElement resolvePatternType(TopLevelVariableElement variable) {
     return null;
   }
   if (variableType.element != regularScannerLibrary.getType('Scanner')) {
-    throw new InvalidGenerationSourceError(
+    throw InvalidGenerationSourceError(
         'The static type of the annotated variable must be Scanner',
         element: variable);
   }
@@ -197,7 +197,7 @@ class TableDrivenScannerGenerator extends ScannerGenerator {
         transitionTypeName =
             resolveLocalName(regularScannerLibrary.getType('Transition'));
 
-    final result = new StringBuffer()
+    final result = StringBuffer()
       ..write(r'const ')
       ..write(generatedNamesPrefix)
       ..write(scannerVariableName)

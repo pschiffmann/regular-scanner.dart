@@ -71,7 +71,7 @@ class Literal extends State {
   final int rune;
 
   @override
-  String toString() => '${new String.fromCharCode(rune)}$repetition';
+  String toString() => '${String.fromCharCode(rune)}$repetition';
 }
 
 /// A dot pattern matches any single character.
@@ -93,7 +93,7 @@ class CharacterSet extends State {
 
   @override
   String toString() {
-    final contents = new StringBuffer();
+    final contents = StringBuffer();
     for (final range in runes) {
       contents.writeCharCode(range.min);
       if (range.max > range.min) {
@@ -109,7 +109,7 @@ class CharacterSet extends State {
 ///
 abstract class DelegatingExpression extends Expression {
   DelegatingExpression(Iterable<Expression> children, Repetition repetition)
-      : children = new List.unmodifiable(children),
+      : children = List.unmodifiable(children),
         assert(
             children.isNotEmpty,
             'DelegatingExpressions must have children because leafs of the '
@@ -287,10 +287,10 @@ class Root extends DelegatingExpression {
 
   @override
   DelegatingExpression get _parent =>
-      throw new UnsupportedError("Root can't have a parent");
+      throw UnsupportedError("Root can't have a parent");
   @override
   set _parent(DelegatingExpression _) =>
-      throw new UnsupportedError("Root can't have a parent");
+      throw UnsupportedError("Root can't have a parent");
   @override
   Root get root => this;
 
@@ -309,7 +309,7 @@ class Root extends DelegatingExpression {
   Iterable<State> siblings(final Expression child) => const [];
 
   @override
-  String get _childSeparator => throw new UnimplementedError('Unused');
+  String get _childSeparator => throw UnimplementedError('Unused');
 
   @override
   String toString() => child.toString();
@@ -320,12 +320,12 @@ class Root extends DelegatingExpression {
 class Repetition {
   const Repetition._(this._stringRepresentation, this.optional, this.repeat);
 
-  static const Repetition one = const Repetition._('', false, false);
-  static const Repetition oneOrMore = const Repetition._('+', false, true);
-  static const Repetition zeroOrOne = const Repetition._('?', true, false);
-  static const Repetition zeroOrMore = const Repetition._('*', true, true);
+  static const Repetition one = Repetition._('', false, false);
+  static const Repetition oneOrMore = Repetition._('+', false, true);
+  static const Repetition zeroOrOne = Repetition._('?', true, false);
+  static const Repetition zeroOrMore = Repetition._('*', true, true);
 
-  static const List<Repetition> values = const [
+  static const List<Repetition> values = [
     one,
     oneOrMore,
     zeroOrOne,

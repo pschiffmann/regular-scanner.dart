@@ -21,15 +21,15 @@ part 'transitions.dart';
 List<dfa.State<T>> constructDfa<T extends Pattern>(
     final List<nfa.Root> expressions) {
   if (expressions.isEmpty) {
-    throw new ArgumentError('patterns must not be empty');
+    throw ArgumentError('patterns must not be empty');
   }
 
   /// Maps NFA state closures to [dfa.State.id]s.
-  final stateIds = new LinkedHashMap<List<nfa.State>, int>(
+  final stateIds = LinkedHashMap<List<nfa.State>, int>(
       equals: closureEquality.equals, hashCode: closureEquality.hash);
 
   /// All closures from [stateIds] that have not been processed yet.
-  final unresolved = new Queue<MapEntry<List<nfa.State>, int>>();
+  final unresolved = Queue<MapEntry<List<nfa.State>, int>>();
 
   /// Returns the [dfa.State.id] that belongs to [closure], allocating a new id
   /// if this is the first time [closure] is looked up. Returns
@@ -38,7 +38,7 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
       ? dfa.State.errorId
       : stateIds.putIfAbsent(closure, () {
           final id = stateIds.length;
-          unresolved.add(new MapEntry(closure, id));
+          unresolved.add(MapEntry(closure, id));
           return id;
         });
 
@@ -47,11 +47,11 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
 
   // Initialize [queue] with a start state. Its closure doesn't need to be
   // sorted because it is never looked up again.
-  lookupId(expressions.map((root) => new NfaStartState(root)).toList());
+  lookupId(expressions.map((root) => NfaStartState(root)).toList());
   while (unresolved.isNotEmpty) {
-    final closure = unresolved.first.key;
-    final id = unresolved.first.value;
-    unresolved.removeFirst();
+    final current = unresolved.removeFirst();
+    final closure = current.key;
+    final id = current.value;
 
     final state = constructState<T>(closure, lookupId);
 
@@ -71,7 +71,7 @@ dfa.State<T> constructState<T extends Pattern>(
   final defaultTransition = constructionClosure();
   for (final successor in closure.expand((state) => state.successors).toSet()) {
     if (successor is nfa.Literal) {
-      reserveTransition(transitions, new Range.single(successor.rune),
+      reserveTransition(transitions, Range.single(successor.rune),
           successor: successor);
     } else if (successor is nfa.CharacterSet) {
       if (!successor.negated) {
@@ -106,7 +106,7 @@ dfa.State<T> constructState<T extends Pattern>(
   }
   defaultTransition.addAll(negated);
 
-  return new dfa.State(finalizeTransitions(transitions, lookupId),
+  return dfa.State<T>(finalizeTransitions(transitions, lookupId),
       defaultTransition: lookupId(defaultTransition.toList(growable: false)),
       accept: highestPrecedencePattern(closure
           .where((state) => state.accepting)
@@ -117,7 +117,7 @@ dfa.State<T> constructState<T extends Pattern>(
 /// `null` if [patterns] is empty. Throws a [ConflictingPatternException] if
 /// there is no single highest precedence pattern.
 Pattern highestPrecedencePattern(Iterable<Pattern> patterns) {
-  final highestPrecedence = new Set<Pattern>();
+  final highestPrecedence = Set<Pattern>();
   for (final pattern in patterns) {
     if (highestPrecedence.isEmpty) {
       highestPrecedence.add(pattern);
@@ -138,7 +138,7 @@ Pattern highestPrecedencePattern(Iterable<Pattern> patterns) {
     case 1:
       return highestPrecedence.first;
     default:
-      throw new ConflictingPatternException(highestPrecedence);
+      throw ConflictingPatternException(highestPrecedence, null);
   }
 }
 
@@ -156,33 +156,31 @@ class NfaStartState implements nfa.State {
 
   @override
   nfa.Repetition get repetition =>
-      throw new UnsupportedError('Undefined for this mock state');
+      throw UnsupportedError('Undefined for this mock state');
   @override
   set repetition(nfa.Repetition repetition) =>
-      throw new UnsupportedError('Undefined for this mock state');
+      throw UnsupportedError('Undefined for this mock state');
   @override
   nfa.DelegatingExpression get parent =>
-      throw new UnsupportedError('Undefined for this mock state');
+      throw UnsupportedError('Undefined for this mock state');
   @override
-  Iterable<nfa.State> get leafs =>
-      throw new UnsupportedError('Undefined for this mock state');
+  bool get optional => throw UnsupportedError('Undefined for this mock state');
   @override
-  bool get optional =>
-      throw new UnsupportedError('Undefined for this mock state');
+  bool get repeat => throw UnsupportedError('Undefined for this mock state');
   @override
-  bool get repeat =>
-      throw new UnsupportedError('Undefined for this mock state');
-  @override
-  int get id => throw new UnsupportedError('Undefined for this mock state');
+  int get id => throw UnsupportedError('Undefined for this mock state');
 }
 
 /// Thrown when multiple [Pattern]s in a scanner match the same input and all
 /// have the same [Pattern.precedence].
 class ConflictingPatternException implements Exception {
-  ConflictingPatternException(this.patterns) : assert(patterns.isNotEmpty);
+  ConflictingPatternException(this.patterns, this.input)
+      : assert(patterns.isNotEmpty);
 
   final Set<Pattern> patterns;
+  final String input;
 
   @override
-  String toString() => '';
+  String toString() => "The following patterns match the string '$input': "
+      '${patterns.join(", ")}';
 }

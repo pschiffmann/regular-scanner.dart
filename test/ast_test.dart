@@ -7,7 +7,7 @@ final Matcher throwsAssertionError =
 
 void main() {
   State state;
-  setUp(() => state = new Literal(65));
+  setUp(() => state = Literal(65));
 
   group('Expression', () {
     test('property `repetition` can be set while the expression is not sealed',
@@ -16,7 +16,7 @@ void main() {
     });
 
     test('becomes immutable after sealing it with a [Root]', () {
-      new Root(state, null);
+      Root(state, null);
       expect(
           () => state.repetition = Repetition.oneOrMore, throwsAssertionError);
     });
@@ -31,8 +31,8 @@ void main() {
 
   group('DelegatingExpression', () {
     test("can't take children that are already assigned to another parent", () {
-      expect(() => new Sequence([state]), returnsNormally);
-      expect(() => new Sequence([state]), throwsAssertionError);
+      expect(() => Sequence([state]), returnsNormally);
+      expect(() => Sequence([state]), throwsAssertionError);
     });
   });
 
@@ -40,10 +40,10 @@ void main() {
     Expression a, b, c;
     Sequence sequence;
     setUp(() {
-      a = new Literal(65);
-      b = new Literal(66);
-      c = new Literal(67);
-      sequence = new Sequence([a, b, c]);
+      a = Literal(65);
+      b = Literal(66);
+      c = Literal(67);
+      sequence = Sequence([a, b, c]);
     });
 
     test('is optional if `repetition` is optional', () {
@@ -96,10 +96,10 @@ void main() {
     Expression a, b, c;
     Alternation alternation;
     setUp(() {
-      a = new Literal(65);
-      b = new Literal(66);
-      c = new Literal(67);
-      alternation = new Alternation([a, b, c]);
+      a = Literal(65);
+      b = Literal(66);
+      c = Literal(67);
+      alternation = Alternation([a, b, c]);
     });
 
     test('is optional if `repetition` is optional', () {
@@ -130,18 +130,18 @@ void main() {
 
   group('tree traversal example:', () {
     // a?(b?(cd|e+))*
-    final a = new Literal($a, Repetition.zeroOrOne);
-    final b = new Literal($b, Repetition.zeroOrOne);
-    final c = new Literal($c);
-    final d = new Literal($d);
-    final e = new Literal($e, Repetition.oneOrMore);
-    final root = new Root(
-        new Sequence([
+    final a = Literal($a, Repetition.zeroOrOne);
+    final b = Literal($b, Repetition.zeroOrOne);
+    final c = Literal($c);
+    final d = Literal($d);
+    final e = Literal($e, Repetition.oneOrMore);
+    final root = Root(
+        Sequence([
           a,
-          new Sequence([
+          Sequence([
             b,
-            new Alternation([
-              new Sequence([c, d]),
+            Alternation([
+              Sequence([c, d]),
               e
             ])
           ], Repetition.zeroOrMore)

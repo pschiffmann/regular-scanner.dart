@@ -1,7 +1,7 @@
 part of 'powerset_construction.dart';
 
 /// Two closures are considered equal if they contain the same elements.
-const IterableEquality<nfa.State> closureEquality = const IterableEquality();
+const IterableEquality<nfa.State> closureEquality = IterableEquality();
 
 /// Sorts the states in a closure first by their pattern, then by their id. The
 /// concrete order doesn't matter, but it needs to be unambiguous so that
@@ -14,4 +14,4 @@ int sortClosure(nfa.State a, nfa.State b) => a.root != b.root
 /// Returns a new [SplayTreeSet] that can be used to construct new closures
 /// because it automatically filters out duplicates and orders its elements with
 /// [sortClosure].
-SplayTreeSet<nfa.State> constructionClosure() => new SplayTreeSet(sortClosure);
+SplayTreeSet<nfa.State> constructionClosure() => SplayTreeSet(sortClosure);

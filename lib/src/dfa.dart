@@ -5,7 +5,7 @@ import 'ranges.dart';
 
 class State<T extends Pattern> {
   const State(this.transitions,
-      {this.defaultTransition: State.errorId, this.accept});
+      {this.defaultTransition = State.errorId, this.accept});
 
   /// The state in `Scanner.states` at index `0` is the start state.
   static const int startId = 0;
@@ -37,8 +37,8 @@ class Transition extends Range {
 
   @override
   String toString() => min == max
-      ? '${new String.fromCharCode(min)} -> $successor'
-      : '[${new String.fromCharCode(min)}-${new String.fromCharCode(max)}] '
+      ? '${String.fromCharCode(min)} -> $successor'
+      : '[${String.fromCharCode(min)}-${String.fromCharCode(max)}] '
       '-> $successor';
 }
 
@@ -48,14 +48,14 @@ class TableDrivenScanner<T extends Pattern> implements Scanner<T> {
   final List<State<T>> states;
 
   @override
-  MatchResult<T> match(Iterator<int> characters, {bool rewind: false}) {
+  MatchResult<T> match(Iterator<int> characters, {bool rewind = false}) {
     var nextState = State.startId;
     var steps = 0;
     MatchResult<T> result;
     while (nextState != State.errorId) {
       final state = states[nextState];
       if (state.accept != null) {
-        result = new MatchResult(state.accept, steps);
+        result = MatchResult(state.accept, steps);
       }
       if (characters.current == null) {
         break;

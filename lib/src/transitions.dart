@@ -25,13 +25,13 @@ void reserveTransition(List<ConstructionTransition> transitions, Range range,
     // The next transition doesn't intersect [range]. Insert a new transition
     // that contains the remainder of [range].
     if (i == transitions.length || range.max < transitions[i].min) {
-      transitions.insert(i, new ConstructionTransition(left, range.max));
+      transitions.insert(i, ConstructionTransition(left, range.max));
     }
     // There's a gap between [left] and the next intersecting transition. Close
     // it with a new transition.
     else if (left < transitions[i].min) {
       transitions.insert(
-          i, new ConstructionTransition(left, transitions[i].min - 1));
+          i, ConstructionTransition(left, transitions[i].min - 1));
     }
     // [range] ends in the middle of `transitions[i]`. Split the current
     // transition so [successor] isn't added to a value outside of [range].
@@ -57,11 +57,11 @@ void splitTransition(List<ConstructionTransition> transitions, int splitElement,
   assert(old.min < rightStart && rightStart <= old.max,
       "Can't split off a transition with length 0");
   transitions
-    ..[splitElement] = (new ConstructionTransition(old.min, rightStart - 1)
+    ..[splitElement] = (ConstructionTransition(old.min, rightStart - 1)
       ..closure.addAll(old.closure))
     ..insert(
         splitElement + 1,
-        new ConstructionTransition(rightStart, old.max)
+        ConstructionTransition(rightStart, old.max)
           ..closure.addAll(old.closure));
 }
 
@@ -90,8 +90,8 @@ List<dfa.Transition> finalizeTransitions(
       max = transitions[i].max;
       i++;
     }
-    result.add(new dfa.Transition(
-        min, max, lookupId(closure.toList(growable: false))));
+    result.add(
+        dfa.Transition(min, max, lookupId(closure.toList(growable: false))));
   }
   return result;
 }
