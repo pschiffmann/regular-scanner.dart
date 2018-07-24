@@ -28,31 +28,48 @@ void main() {
     int lookupId(List<nfa.State> closure) => closure.isEmpty
         ? dfa.State.errorId
         : stateIds.putIfAbsent(closure, () => stateIds.length);
-    List<nfa.State> lookupClosure(int id) =>
-        stateIds.entries.firstWhere((entry) => entry.value == id).key;
 
     setUp(stateIds.clear);
+
+    /// Checks that [dfa.State.transitions] contains the assigned [transitions],
+    /// provided as a mapping from the guard range to the successor closure.
+    void checkTransitions(
+        dfa.State state, Map<Range, List<nfa.State>> transitions) {
+      final actual = state.transitions.iterator;
+      final expected = transitions.entries.iterator;
+      while (expected.moveNext()) {
+        final guard = expected.current.key;
+        final closure = expected.current.value;
+        expect(actual.moveNext(), isTrue,
+            reason: 'state is missing transition $guard -> $closure');
+        expect(actual.current, equals(guard));
+        final successorId =
+            closure.isEmpty ? dfa.State.errorId : stateIds[closure];
+        expect(successorId, isNotNull,
+            reason:
+                "constructDfa didn't allocate a state for closure $closure");
+        expect(actual.current.successor, successorId);
+      }
+      expect(actual.moveNext(), isFalse,
+          reason: 'state contains unexpected transition ${actual.current}');
+    }
 
     test('correctly places literals in the transitions list', () {
       final states =
           parse(const Pattern(r'(aa)+|(aaa)+|(ad?)*z')).leafs.toList();
 
-      // position in patterns:
+      // position in pattern:
       //   (aa)+|(aaa)+|(ad?)*z
       //    ^     ^      ^
       // expected successors:
       //   (aa)+|(aaa)+|(ad?)*z
       //     ^     ^     ^^   ^
-      final result =
-          constructState([states[0], states[2], states[5]], lookupId);
-      expect(result.transitions.length, 3);
-      expect(result.transitions[0], const Range.single($a));
-      expect(lookupClosure(result.transitions[0].successor),
-          [states[1], states[3], states[5]]);
-      expect(result.transitions[1], const Range.single($d));
-      expect(lookupClosure(result.transitions[1].successor), [states[6]]);
-      expect(result.transitions[2], const Range.single($z));
-      expect(lookupClosure(result.transitions[2].successor), [states[7]]);
+      checkTransitions(
+          constructState([states[0], states[2], states[5]], lookupId), {
+        const Range.single($a): [states[1], states[3], states[5]],
+        const Range.single($d): [states[6]],
+        const Range.single($z): [states[7]]
+      });
     });
 
     test('correctly places character sets in the transitions list', () {
@@ -60,18 +77,14 @@ void main() {
 
       //   a[a-d]?[c-f]+
       //   ^
-      final result = constructState([states[0]], lookupId);
-      expect(result.transitions.length, 3);
-      // [a-b] -> [[a-d]]
-      expect(result.transitions[0], const Range($a, $b));
-      expect(lookupClosure(result.transitions[0].successor), [states[1]]);
-      // [c-d] -> [[a-d], [b-f]]
-      expect(result.transitions[1], const Range($c, $d));
-      expect(lookupClosure(result.transitions[1].successor),
-          [states[1], states[2]]);
-      // [e-f] -> [[b-f]]
-      expect(result.transitions[2], const Range($e, $f));
-      expect(lookupClosure(result.transitions[2].successor), [states[2]]);
+      checkTransitions(constructState([states[0]], lookupId), {
+        // [a-b] -> [a-d]
+        const Range($a, $b): [states[1]],
+        // [c-d] -> [a-d], [b-f]
+        const Range($c, $d): [states[1], states[2]],
+        // [e-f] -> [b-f]
+        const Range($e, $f): [states[2]]
+      });
     });
 
     test(
@@ -81,30 +94,22 @@ void main() {
           parse(const Pattern(r'a([a-f]+|[^d-p]|k|z)')).leafs.toList();
 
       final result = constructState([states[0]], lookupId);
-      expect(result.transitions.length, 6);
-
-      // [a-c] -> [[a-f], [^d-p]]
-      expect(result.transitions[0], const Range($a, $c));
-      expect(lookupClosure(result.transitions[0].successor),
-          [states[1], states[2]]);
-      // [d-f] -> [[a-f]]
-      expect(result.transitions[1], const Range($d, $f));
-      expect(lookupClosure(result.transitions[1].successor), [states[1]]);
-      // [g-j] -> -1
-      expect(result.transitions[2], const Range($g, $j));
-      expect(result.transitions[2].successor, dfa.State.errorId);
-      // [k] -> [[k]]
-      expect(result.transitions[3], const Range.single($k));
-      expect(lookupClosure(result.transitions[3].successor), [states[3]]);
-      // [l-p] -> -1
-      expect(result.transitions[4], const Range($l, $p));
-      expect(result.transitions[4].successor, dfa.State.errorId);
-      // [z] -> [[^d-p], [z]]
-      expect(result.transitions[5], const Range.single($z));
-      expect(lookupClosure(result.transitions[5].successor),
-          [states[2], states[4]]);
-      // default -> [[^d-p]]
-      expect(lookupClosure(result.defaultTransition), [states[2]]);
+      checkTransitions(result, {
+        // [a-c] -> [a-f], [^d-p]
+        const Range($a, $c): [states[1], states[2]],
+        // [d-f] -> [a-f]
+        const Range($d, $f): [states[1]],
+        // [g-j] -> -1
+        const Range($g, $j): const [],
+        // [k] -> k
+        const Range.single($k): [states[3]],
+        // [l-p] -> -1
+        const Range($l, $p): const [],
+        // [z] -> [^d-p], z
+        const Range.single($z): [states[2], states[4]]
+      });
+      // default -> [^d-p]
+      expect(result.defaultTransition, stateIds[[states[2]]]);
     });
 
     test('correctly merges literals, normal and negated character sets', () {});
