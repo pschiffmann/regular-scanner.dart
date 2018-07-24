@@ -76,27 +76,35 @@ void main() {
 
     test(
         'adds negated character sets to non-intersecting ranges '
-        'in the transitions list', () {
+        'in the transitions list and the default transition', () {
       final states =
           parse(const Pattern(r'a([a-f]+|[^d-p]|k|z)')).leafs.toList();
 
       final result = constructState([states[0]], lookupId);
-      expect(result.transitions.length, 4);
+      expect(result.transitions.length, 6);
 
       // [a-c] -> [[a-f], [^d-p]]
       expect(result.transitions[0], const Range($a, $c));
       expect(lookupClosure(result.transitions[0].successor),
-          [states[0], states[1]]);
+          [states[1], states[2]]);
       // [d-f] -> [[a-f]]
       expect(result.transitions[1], const Range($d, $f));
-      expect(lookupClosure(result.transitions[1].successor), [states[0]]);
+      expect(lookupClosure(result.transitions[1].successor), [states[1]]);
+      // [g-j] -> -1
+      expect(result.transitions[2], const Range($g, $j));
+      expect(result.transitions[2].successor, dfa.State.errorId);
       // [k] -> [[k]]
-      expect(result.transitions[2], const Range.single($k));
-      expect(lookupClosure(result.transitions[2].successor), [states[2]]);
+      expect(result.transitions[3], const Range.single($k));
+      expect(lookupClosure(result.transitions[3].successor), [states[3]]);
+      // [l-p] -> -1
+      expect(result.transitions[4], const Range($l, $p));
+      expect(result.transitions[4].successor, dfa.State.errorId);
       // [z] -> [[^d-p], [z]]
-      expect(result.transitions[3], const Range.single($z));
-      expect(lookupClosure(result.transitions[3].successor),
-          [states[1], states[3]]);
+      expect(result.transitions[5], const Range.single($z));
+      expect(lookupClosure(result.transitions[5].successor),
+          [states[2], states[4]]);
+      // default -> [[^d-p]]
+      expect(lookupClosure(result.defaultTransition), [states[2]]);
     });
 
     test('correctly merges literals, normal and negated character sets', () {});

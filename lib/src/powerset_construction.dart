@@ -107,6 +107,7 @@ dfa.State<T> constructState<T extends Pattern>(
       }
     }
   }
+  defaultTransition.addAll(negated);
 
   return new dfa.State(finalizeTransitions(transitions, lookupId),
       defaultTransition: lookupId(defaultTransition.toList(growable: false)),
