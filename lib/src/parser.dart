@@ -120,6 +120,8 @@ class TokenIterator implements Iterator<int> {
       case $plus:
       case $question:
         return TokenType.repetition;
+      case $dot:
+        return TokenType.dot;
       literal:
       default:
         return TokenType.literal;
