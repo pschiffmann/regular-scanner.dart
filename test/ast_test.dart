@@ -86,8 +86,9 @@ void main() {
 
     test('`siblings` wraps around if `sequence.repeat` is true', () {
       c.repetition = Repetition.zeroOrOne;
+      a.repetition = Repetition.zeroOrOne;
       sequence.repetition = Repetition.oneOrMore;
-      expect(sequence.siblings(b), equals([c, a]));
+      expect(sequence.siblings(b), equals([c, a, b]));
     });
   });
 
@@ -111,11 +112,9 @@ void main() {
       expect(alternation.optional, isTrue);
     });
 
-    test(
-        '`siblings` returns all elements except `child` '
-        'if `sequence` wraps around', () {
+    test('`siblings` returns all elements if `sequence` wraps around', () {
       alternation.repetition = Repetition.oneOrMore;
-      expect(alternation.siblings(b), equals([a, c]));
+      expect(alternation.siblings(b), equals([a, b, c]));
     });
   });
 
