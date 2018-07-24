@@ -112,7 +112,29 @@ void main() {
       expect(result.defaultTransition, stateIds[[states[2]]]);
     });
 
-    test('correctly merges literals, normal and negated character sets', () {});
+    test(
+        'correctly merges literals, normal and negated character sets and dots',
+        () {
+      final states =
+          parse(const Pattern(r'a([a-f]|[^adr-w]|f|.)')).leafs.toList();
+
+      final result = constructState([states[0]], lookupId);
+      checkTransitions(result, {
+        // [a] -> [a-f], .
+        const Range.single($a): [states[1], states[4]],
+        // [b-c] -> [a-f], [^adr-w], .
+        const Range($b, $c): [states[1], states[2], states[4]],
+        // [d] -> [a-f], .
+        const Range.single($d): [states[1], states[4]],
+        // [e] -> [a-f], [^adr-w], .
+        const Range.single($e): [states[1], states[2], states[4]],
+        // [f] -> [a-f], [^adr-w], f, .
+        const Range.single($f): [states[1], states[2], states[3], states[4]],
+        // [r-w] -> .
+        const Range($r, $w): [states[4]]
+      });
+      expect(result.defaultTransition, stateIds[[states[2], states[4]]]);
+    });
 
     test(
         'composes the default transition state of dot '

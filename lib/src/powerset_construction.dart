@@ -99,11 +99,8 @@ dfa.State<T> constructState<T extends Pattern>(
     transition.closure.addAll(defaultTransition);
 
     for (final successor in negated) {
-      for (final runes in successor.runes) {
-        if (!runes.containsRange(transition)) {
-          assert(!runes.intersects(transition));
-          transition.closure.add(successor);
-        }
+      if (!successor.runes.any((runes) => runes.intersects(transition))) {
+        transition.closure.add(successor);
       }
     }
   }

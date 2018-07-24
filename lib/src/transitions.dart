@@ -54,7 +54,7 @@ void reserveTransition(List<ConstructionTransition> transitions, Range range,
 void splitTransition(List<ConstructionTransition> transitions, int splitElement,
     int rightStart) {
   final old = transitions[splitElement];
-  assert(old.min < rightStart && rightStart < old.max,
+  assert(old.min < rightStart && rightStart <= old.max,
       "Can't split off a transition with length 0");
   transitions
     ..[splitElement] = (new ConstructionTransition(old.min, rightStart - 1)
