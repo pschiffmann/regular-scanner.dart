@@ -10,17 +10,7 @@ import 'package:regular_scanner/src/powerset_construction.dart';
 import 'package:regular_scanner/src/ranges.dart';
 import 'package:test/test.dart';
 
-final Matcher throwsAssertionError =
-    throwsA(const TypeMatcher<AssertionError>());
-
 void main() {
-  //State state;
-  //setUp(() => state = new Literal(65));
-
-  group('constructDfa', () {
-    test('', () {});
-  });
-
   group('constructState', () {
     final stateIds = LinkedHashMap<List<nfa.State>, int>(
         equals: closureEquality.equals, hashCode: closureEquality.hash);
