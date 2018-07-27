@@ -42,8 +42,9 @@ class Transition extends Range {
       '-> $successor';
 }
 
-class TableDrivenScanner<T extends Pattern> implements Scanner<T> {
-  const TableDrivenScanner(this.states);
+class TableDrivenScanner<T extends Pattern> extends Scanner<T> {
+  const TableDrivenScanner(List<T> patterns, this.states)
+      : super.setPatterns(patterns);
 
   final List<State<T>> states;
 

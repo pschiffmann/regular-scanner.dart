@@ -47,13 +47,24 @@ class MatchResult<T extends Pattern> {
 }
 
 abstract class Scanner<T extends Pattern> {
-  factory Scanner(Iterable<T> patterns) => Scanner.withParseTable(
-      constructDfa(patterns.map(parse).toList(growable: false)));
+  factory Scanner(Iterable<T> patterns) {
+    final patternsList = List.unmodifiable<T>(patterns);
+    assert(patternsList.length == patternsList.toSet().length,
+        'patterns contains duplicates');
+    return Scanner.withParseTable(patternsList,
+        constructDfa(patternsList.map(parse).toList(growable: false)));
+  }
 
   /// Internal constructor. Only visible so that generated code can instantiate
   /// this class as a `const` expression.
-  const factory Scanner.withParseTable(List<State<T>> states) =
-      TableDrivenScanner<T>;
+  const factory Scanner.withParseTable(
+      List<T> patterns, List<State<T>> states) = TableDrivenScanner<T>;
+
+  /// This constructor only exists so this class can be subclassed.
+  const Scanner.setPatterns(this.patterns);
+
+  /// The patterns that are matched by this scanner, in unchanged order.
+  final List<T> patterns;
 
   /// Matches [characters] against the patterns in this scanner. Returns the
   /// longest possible match, or `null` if no pattern matched.
@@ -71,4 +82,27 @@ abstract class Scanner<T extends Pattern> {
   /// To match strings, obtain a compatible iterator from [String.codeUnits] or
   /// [String.runes].
   MatchResult<T> match(Iterator<int> characters, {bool rewind = false});
+
+  /// Parses the whole input by repeatedly calling [match], until [characters]
+  /// is exhausted.
+  ///
+  /// Calls [onError] if [characters] doesn't match at any point. [onError] is
+  /// expected to return a substitute [MatchResult] and advance [characters] by
+  /// at least one position. If [onError] is omitted and an error is
+  /// encountered, throws a [FormatException].
+  Iterable<MatchResult<T>> tokenize(BidirectionalIterator<int> characters,
+      {MatchResult<T> Function(BidirectionalIterator<int>) onError}) {
+    final result = <MatchResult<T>>[];
+    while (characters.current != null) {
+      final m = match(characters, rewind: true);
+      if (m != null) {
+        result.add(m);
+      } else if (onError != null) {
+        result.add(onError(characters));
+      } else {
+        throw FormatException("input didn't match any pattern", characters);
+      }
+    }
+    return result;
+  }
 }
