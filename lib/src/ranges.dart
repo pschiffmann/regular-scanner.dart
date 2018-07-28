@@ -34,7 +34,7 @@ int leftmostIntersectionOrRightNeighbour(List<Range> sortedList, Range range) {
 class Range {
   const Range(this.min, this.max) : assert(min <= max);
 
-  const factory Range.single(int value) = SingleElementRange;
+  const Range.single(int value) : this(value, value);
 
   /// The lower bound of this range.
   final int min;
@@ -62,29 +62,4 @@ class Range {
 
   @override
   String toString() => '[$min, $max]';
-}
-
-/// Represents an integer range from [min] to [max], both inclusive.
-class SingleElementRange implements Range {
-  const SingleElementRange(this.value);
-
-  final int value;
-
-  @override
-  int get min => value;
-  @override
-  int get max => value;
-
-  @override
-  int get length => 1;
-
-  @override
-  bool contains(int value) => this.value == value;
-  @override
-  bool containsRange(Range other) => other.length == 1 && other.min == value;
-  @override
-  bool intersects(Range other) => other.contains(value);
-
-  @override
-  String toString() => value.toString();
 }

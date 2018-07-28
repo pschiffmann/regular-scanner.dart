@@ -30,8 +30,7 @@ class State<T extends Pattern> {
 
 class Transition extends Range {
   const Transition(int min, int max, this.successor) : super(min, max);
-  const factory Transition.single(int value, int successor) =
-      SingleGuardTransition;
+  const Transition.single(int value, this.successor) : super.single(value);
 
   final int successor;
 
@@ -75,11 +74,4 @@ class TableDrivenScanner<T extends Pattern> extends Scanner<T> {
     }
     return result;
   }
-}
-
-class SingleGuardTransition extends SingleElementRange implements Transition {
-  const SingleGuardTransition(int value, this.successor) : super(value);
-
-  @override
-  final int successor;
 }
