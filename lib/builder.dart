@@ -49,7 +49,7 @@ String resolveLocalName(ClassElement cls) {
   }
   for (final import in hostLibrary.imports) {
     final localName =
-        import.prefix == null ? className : '${import.name}.$className';
+        import.prefix == null ? className : '${import.prefix.name}.$className';
     if (import.namespace.get(localName) == cls) {
       return localName;
     }
@@ -200,10 +200,10 @@ class TableDrivenScannerGenerator extends ScannerGenerator {
   @override
   String generateScanner(TableDrivenScanner<PatternWithInitializer> scanner,
       String scannerVariableName, ClassElement patternType) {
-    final stateTypeName =
-            resolveLocalName(regularScannerLibrary.getType('State')),
-        transitionTypeName =
-            resolveLocalName(regularScannerLibrary.getType('Transition'));
+    final stateTypeName = resolveLocalName(
+            regularScannerLibrary.exportNamespace.get('State')),
+        transitionTypeName = resolveLocalName(
+            regularScannerLibrary.exportNamespace.get('Transition'));
 
     final result = StringBuffer()
       ..write(r'const ')
@@ -211,7 +211,8 @@ class TableDrivenScannerGenerator extends ScannerGenerator {
       ..write(scannerVariableName)
       ..write(' = ')
       ..write('const ')
-      ..write(resolveLocalName(regularScannerLibrary.getType('Scanner')));
+      ..write(resolveLocalName(
+          regularScannerLibrary.exportNamespace.get('Scanner')));
     if (patternType != null) {
       result..write('<')..write(resolveLocalName(patternType))..write('>');
     }
