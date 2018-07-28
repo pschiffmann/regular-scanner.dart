@@ -210,21 +210,18 @@ class TableDrivenScannerGenerator extends ScannerGenerator {
       ..write(generatedNamesPrefix)
       ..write(scannerVariableName)
       ..write(' = ')
-      ..write('const ')
       ..write(resolveLocalName(
           regularScannerLibrary.exportNamespace.get('Scanner')));
     if (patternType != null) {
       result..write('<')..write(resolveLocalName(patternType))..write('>');
     }
-    result.writeln('.withParseTable(const [');
+    result.writeln('.withParseTable([], [');
     for (final state in scanner.states) {
       result
-        ..write('const ')
         ..write(stateTypeName)
-        ..writeln('const [');
+        ..writeln('([');
       for (final transition in state.transitions) {
         result
-          ..write('const ')
           ..write(transitionTypeName)
           ..write('(')
           ..write(transition.min)
