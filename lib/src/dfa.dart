@@ -49,26 +49,25 @@ class TableDrivenScanner<T extends Pattern> extends Scanner<T> {
 
   @override
   MatchResult<T> match(Iterator<int> characters, {bool rewind = false}) {
-    var nextState = State.startId;
+    var state = states[State.startId];
+    var result = state.accept == null ? null : MatchResult<T>(state.accept, 0);
     var steps = 0;
-    MatchResult<T> result;
-    while (nextState != State.errorId) {
-      final state = states[nextState];
-      if (state.accept != null) {
-        result = MatchResult(state.accept, steps);
-      }
-      if (characters.current == null) {
+    while (characters.current != null) {
+      final nextId = state.successorFor(characters.current);
+      if (nextId == State.errorId) {
         break;
       }
-      nextState = state.successorFor(characters.current);
-      characters.moveNext();
+      state = states[nextId];
       steps++;
+      if (state.accept != null) {
+        result = MatchResult<T>(state.accept, steps);
+      }
+      characters.moveNext();
     }
 
     if (rewind) {
       final it = characters as BidirectionalIterator;
-      final stepsBack = result == null ? steps : steps - result.length;
-      for (var i = 0; i < stepsBack; i++) {
+      for (var i = steps - (result != null ? result.length : 0); i > 0; i--) {
         it.movePrevious();
       }
     }
