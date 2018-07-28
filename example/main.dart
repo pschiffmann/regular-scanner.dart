@@ -32,13 +32,11 @@ void main(List<String> args) {
     final it = input.runes.iterator..moveNext();
     while (it.current != null) {
       final start = it.rawIndex;
-      final match = scanner.match(it);
+      final match = scanner.match(it, rewind: true);
       if (match == null) {
         print('- Match failed at character ${it.current}');
-      } else if (match.pattern == whitespace) {
-        print('- skipping over ${it.current - start} whitespace characters');
-      } else {
-        print('- ${input.substring(start, match.length)} '
+      } else if (match.pattern != whitespace) {
+        print('- ${input.substring(start, start + match.length)} '
             'matches pattern ${match.pattern.name}');
       }
     }
