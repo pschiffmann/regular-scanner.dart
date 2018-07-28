@@ -137,13 +137,21 @@ List<PatternWithInitializer> resolveInjectScannerArguments(
   }
 
   final astNode = variable.computeNode();
-  for (final annotation in astNode.metadata) {
+  final metadata =
+      (astNode.parent.parent as TopLevelVariableDeclaration).metadata;
+  for (final annotation in metadata) {
     if (annotation.elementAnnotation.constantValue != injectScanner) {
       continue;
     }
 
-    final initializers = annotation.arguments.arguments;
-    assert(patterns.length == initializers.length);
+    final initializerList = annotation.arguments.arguments.first;
+    if (initializerList is! ListLiteral) {
+      throw InvalidGenerationSourceError(
+          'The patterns must be explicitly enumerated in the `@InjectScanner` '
+          'annotation parameter',
+          element: variable);
+    }
+    final initializers = (initializerList as ListLiteral).elements;
 
     final result = <PatternWithInitializer>[];
     for (var i = 0; i < initializers.length; i++) {
