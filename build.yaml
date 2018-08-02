@@ -3,5 +3,6 @@ builders:
     import: "package:regular_scanner/builder.dart"
     builder_factories: ["scannerBuilder"]
     build_extensions: {".dart": [".g.dart"]}
-    build_to: source
     auto_apply: root_package
+    runs_before: ["source_gen|combining_builder"]
+    applies_builders: ["source_gen|combining_builder"]

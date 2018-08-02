@@ -4,7 +4,7 @@ version: 0.1.0
 dependencies:
   analyzer: any
   build: any
-  source_gen: any
+  source_gen: ^0.9.0
   # Not imported in code; This dependency restricts consumers of this package to
   # a version of `build` that still uses the same `build.yaml` format.
   build_config: ^0.3.0

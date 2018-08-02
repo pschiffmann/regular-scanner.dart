@@ -28,8 +28,7 @@ LibraryElement get hostLibrary => Zone.current[#hostLibrary];
 
 /// The [BuilderFactory] that is specified in `build.yaml`.
 Builder scannerBuilder(BuilderOptions options) =>
-    PartBuilder([TableDrivenScannerGenerator()],
-        header: options.config['header'] as String);
+    SharedPartBuilder(const [TableDrivenScannerGenerator()], 'regular_scanner');
 
 /// Returns the local name of [cls], as visible in [hostLibrary].
 ///
@@ -197,6 +196,8 @@ class PatternWithInitializer extends Pattern {
 
 /// Encodes the built scanner as a `const` [TableDrivenScanner].
 class TableDrivenScannerGenerator extends ScannerGenerator {
+  const TableDrivenScannerGenerator();
+
   @override
   String generateScanner(TableDrivenScanner<PatternWithInitializer> scanner,
       String scannerVariableName, ClassElement patternType) {
