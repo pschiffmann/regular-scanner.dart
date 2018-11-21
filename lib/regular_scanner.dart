@@ -48,7 +48,7 @@ class MatchResult<T extends Pattern> {
 
 abstract class Scanner<T extends Pattern> {
   factory Scanner(Iterable<T> patterns) {
-    final patternsList = List.unmodifiable<T>(patterns);
+    final patternsList = List<T>.unmodifiable(patterns);
     assert(patternsList.length == patternsList.toSet().length,
         'patterns contains duplicates');
     return Scanner.withParseTable(patternsList,
