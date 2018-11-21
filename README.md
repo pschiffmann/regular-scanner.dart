@@ -30,8 +30,8 @@ Matching runs in linear time of the input string, independently of the number of
 
 If the patterns are compile-time constant – like in the example above – the DFA can be constructed at compile (or rather [build][build]) time.
 
-Early error detection
----------------------
+ambiguity warnings
+------------------
 
 Since the DFA knows all possible paths through the patterns, it is possible to detect ambiguities.
 When multiple patterns match the same input, the `Scanner` constructor throws an exception.
@@ -43,17 +43,52 @@ Syntax
 Dart regular expressions are more than [regular][regular language].
 This makes them more powerful, but also more expensive to execute.
 Some of their features, like lookahead/lookbehind assertions and capturing groups, cannot be expressed by a DFA.
-If you need that extra power, you should use native `RegExp`s; this package only supports the following syntax.
-
+If you need that extra power, you should use native `RegExp`s; this package only supports the syntax specified here.
 Differences in behaviour between this package and `RegExp` are _emphasized_.
 
- * `.` matches any single character, _including newlines (`\n`)._
- * character sets (`[ace-f]`) match any of the characters (`a`, `c`) or ranges (`e-f`) enclosed in the square brackets.
-   A leading `^` inside the brackets indicates negation and causes the expression to match any character except those enclosed in the square brackets. _Inside a character set, `[]^-\` must always be `\`-escaped, even if they appear at the very first or last position in the set._
- * `+`, `*` and `?` are repetition specifiers. `*` and `?` make the previous matcher optional; `+` and `*` make it repeatable.
+### general escape sequences
+
+An escape sequence is a character sequence that starts with `\`.
+If you need to match a literal `\`, precede it with `\`, like so: `\\`.
+These escape sequences are recognized in both contexts.
+
+ * `\t`, `\r`, `\n`, `\v`, `\f`, `\0` match the ASCII control characters tab, carriage return, linefeed, vertical tab, form-feed and NUL, respectively.
+ * `\u{hhhh}` or `\u{hhhhh}` match the character with the Unicode value U+`hhhh` or U+`hhhhh` (hexadecimal digits).
+
+_If an unrecognized escape sequence is encountered, an exception is thrown._
+
+### default context
+
+Outside of a character set, the following characters have a special meaning:
+
+ * `.` matches any single character, _including newlines._
+ * `[` and `]` mark the beginning and end of a character set.
+ * `+`, `*` and `?` are repetition specifiers.
+   `*` and `?` make the previous matcher optional; `+` and `*` make it repeatable.
  * `()` can be used to apply a repetition specifier to a sequence of matchers.
  * `|` indicates alternation between the left and right matchers.
- * Any other character matches itself.
+
+If you need to match any of these characters literally, you need to escape them with `\`.
+
+Furthermore, there exist several aliases for commonly used character sets.
+
+ * `\d` matches `[0-9]`.
+ * `\w` matches `[A-Za-z0-9_]`.
+ * `\s` matches `[ \f\n\r\t\v\u{00a0}\u{1680}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}]`.
+
+Each alias also exists in a negated (uppercase) variant that matches iff their lowercase counterpart doesn't match.
+For example, `\D` is equivalent to `[^0-9]`.
+
+Any other character matches itself.
+
+### character sets
+
+A character set consumes a single character from the input string and matches any character inside the square brackets.
+You can specify character ranges with `-`:
+`[ace-g]` matches any of the characters `a`, `c`, `e`, `f` and `g`.
+A leading `^` inside the brackets indicates negation and causes the expression to match any character except those enclosed in the square brackets.
+
+_Inside a character set, `[]^-` must always be `\`-escaped, even if they appear at the very first or last position in the set._
 
 Usage
 -----
