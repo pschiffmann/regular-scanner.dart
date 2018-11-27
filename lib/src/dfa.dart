@@ -7,7 +7,7 @@ class State<T extends Pattern> {
   const State(this.transitions,
       {this.defaultTransition = State.errorId, this.accept});
 
-  /// The state in `Scanner.states` at index `0` is the start state.
+  /// The state in [TableDrivenScanner.states] at index `0` is the start state.
   static const int startId = 0;
 
   /// [successorFor] returns this value to reject the next character and stop
@@ -20,6 +20,7 @@ class State<T extends Pattern> {
   /// [transitions]. This value is never `null` and defaults to [State.errorId].
   final int defaultTransition;
 
+  /// If this state is reached, the input matches [accept].
   final T accept;
 
   int successorFor(int guard) {
@@ -32,6 +33,7 @@ class Transition extends Range {
   const Transition(int min, int max, this.successor) : super(min, max);
   const Transition.single(int value, this.successor) : super.single(value);
 
+  /// The id of the successor state.
   final int successor;
 
   @override
@@ -50,7 +52,8 @@ class TableDrivenScanner<T extends Pattern> extends Scanner<T> {
   @override
   MatchResult<T> match(Iterator<int> characters, {bool rewind = false}) {
     var state = states[State.startId];
-    var result = state.accept == null ? null : MatchResult<T>(state.accept, 0);
+    var result =
+        state.accept == null ? null : MatchResult<T>(state.accept, null, 0, 0);
     var steps = 0;
     while (characters.current != null) {
       final nextId = state.successorFor(characters.current);
@@ -60,7 +63,7 @@ class TableDrivenScanner<T extends Pattern> extends Scanner<T> {
       state = states[nextId];
       steps++;
       if (state.accept != null) {
-        result = MatchResult<T>(state.accept, steps);
+        result = MatchResult<T>(state.accept, null, 0, steps);
       }
       characters.moveNext();
     }

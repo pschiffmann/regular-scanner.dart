@@ -39,22 +39,28 @@ class Pattern {
   String toString() => '/$regularExpression/';
 }
 
+/// Returned by [Scanner.match] to indicate which [pattern] matched a given
+/// [input].
 class MatchResult<T extends Pattern> {
-  MatchResult(this.pattern, int length)
-      : assert(length != null),
-        input = null,
-        start = -1,
-        end = -1;
-
-  MatchResult.correct(this.pattern, this.input, this.start, this.end)
+  MatchResult(this.pattern, this.input, this.start, this.end)
       : assert(0 <= start && start <= end && end < input.length);
 
   final T pattern;
+
+  /// The input string that was passed to [Scanner.match].
   final String input;
+
+  /// The span in [input] that was matched by [pattern].
   String get span => input.substring(start, end);
 
+  /// Contains the index (in [String.codeUnits]) of the first matched character.
   final int start;
+
+  /// Contains the index (in [String.codeUnits]) behind the last matched
+  /// character.
   final int end;
+
+  /// Returns the number of matched code units.
   int get length => end - start;
 }
 
