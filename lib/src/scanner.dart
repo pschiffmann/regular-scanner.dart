@@ -5,6 +5,8 @@ import 'package:meta/meta.dart' show alwaysThrows;
 
 import '../regular_scanner.dart';
 
+part 'scanner.g.dart';
+
 const controlCharacterEscapeTranslations = {
   $t: $tab,
   $r: $cr,
@@ -71,7 +73,7 @@ const literal = TokenType('.');
   choice,
   characterSetAliases
 ])
-const Scanner<TokenType> defaultContextScanner = null;
+const Scanner<TokenType> defaultContextScanner = _$defaultContextScanner;
 
 @InjectScanner([
   _controlCharacterEscape,
@@ -83,7 +85,7 @@ const Scanner<TokenType> defaultContextScanner = null;
   rangeSeparator,
   negation
 ])
-const Scanner<TokenType> characterSetScanner = null;
+const Scanner<TokenType> characterSetScanner = _$characterSetScanner;
 
 /// Extracts the unicode rune that an escape sequence should match.
 typedef ValueExtractor = int Function(MatchResult m);
