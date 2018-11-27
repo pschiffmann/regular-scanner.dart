@@ -1,5 +1,3 @@
-import 'dart:core' hide Pattern;
-
 import 'package:charcode/ascii.dart';
 import 'package:meta/meta.dart' show alwaysThrows;
 
@@ -124,7 +122,7 @@ int _extractUnicodeCodePoint(MatchResult m) {
   return int.parse(hexString, radix: 16);
 }
 
-class TokenType extends Pattern {
+class TokenType extends Regex {
   const TokenType(String pattern, [this.extractCodePoint = _extractIdentity])
       : super(pattern);
 
@@ -145,7 +143,7 @@ class TokenType extends Pattern {
 /// the code unit values of the current token. Backslash-escaped characters are
 /// recognized as [literal]  tokens, and [codeUnit]/[codeUnits] contain the
 /// decoded value.
-class TokenIterator implements Iterator<Pattern> {
+class TokenIterator implements Iterator<Regex> {
   TokenIterator(this.pattern);
 
   /// The string that is scanned by this iterator.

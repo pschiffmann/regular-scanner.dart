@@ -1,6 +1,4 @@
-import 'dart:core' hide Pattern;
-
-import '../regular_scanner.dart' show Pattern;
+import '../regular_scanner.dart' show Regex;
 import 'ranges.dart';
 
 /// Each expression object represents a coherent, complete regular expression
@@ -295,7 +293,7 @@ class Root extends DelegatingExpression {
   Root get root => this;
 
   Expression get child => children.first;
-  final Pattern pattern;
+  final Regex pattern;
 
   @override
   Iterable<State> get first =>

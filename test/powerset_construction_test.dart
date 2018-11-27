@@ -1,5 +1,4 @@
 import 'dart:collection';
-import 'dart:core' hide Pattern;
 
 import 'package:charcode/ascii.dart';
 import 'package:regular_scanner/regular_scanner.dart' hide State;
@@ -45,8 +44,7 @@ void main() {
     }
 
     test('correctly places literals in the transitions list', () {
-      final states =
-          parse(const Pattern(r'(aa)+|(aaa)+|(ad?)*z')).leafs.toList();
+      final states = parse(const Regex(r'(aa)+|(aaa)+|(ad?)*z')).leafs.toList();
 
       // position in pattern:
       //   (aa)+|(aaa)+|(ad?)*z
@@ -63,7 +61,7 @@ void main() {
     });
 
     test('correctly places character sets in the transitions list', () {
-      final states = parse(const Pattern(r'a[a-d]?[c-f]+')).leafs.toList();
+      final states = parse(const Regex(r'a[a-d]?[c-f]+')).leafs.toList();
 
       //   a[a-d]?[c-f]+
       //   ^
@@ -80,8 +78,7 @@ void main() {
     test(
         'adds negated character sets to non-intersecting ranges '
         'in the transitions list and the default transition', () {
-      final states =
-          parse(const Pattern(r'a([a-f]+|[^d-p]|k|z)')).leafs.toList();
+      final states = parse(const Regex(r'a([a-f]+|[^d-p]|k|z)')).leafs.toList();
 
       final result = constructState([states[0]], lookupId);
       checkTransitions(result, {
@@ -106,7 +103,7 @@ void main() {
         'correctly merges literals, normal and negated character sets and dots',
         () {
       final states =
-          parse(const Pattern(r'a([a-f]|[^adr-w]|f|.)')).leafs.toList();
+          parse(const Regex(r'a([a-f]|[^adr-w]|f|.)')).leafs.toList();
 
       final result = constructState([states[0]], lookupId);
       checkTransitions(result, {
@@ -142,20 +139,19 @@ void main() {
     });
 
     test('returns the highest precedence pattern if only one exists', () {
-      final expected = const Pattern('a', precedence: 3);
+      final expected = const Regex('a', precedence: 3);
       expect(
           highestPrecedencePattern([
-            const Pattern('b', precedence: 1),
+            const Regex('b', precedence: 1),
             expected,
-            const Pattern('c', precedence: 1)
+            const Regex('c', precedence: 1)
           ]),
           expected);
     });
 
     test('throws if multiple patterns have the same precedence', () {
       expect(
-          () => highestPrecedencePattern(
-              [const Pattern('a'), const Pattern('b')]),
+          () => highestPrecedencePattern([const Regex('a'), const Regex('b')]),
           throwsA(const TypeMatcher<ConflictingPatternException>()));
     });
   });

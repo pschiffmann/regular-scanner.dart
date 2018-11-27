@@ -1,5 +1,3 @@
-import 'dart:core' hide Pattern;
-
 import 'package:charcode/ascii.dart';
 import 'package:regular_scanner/regular_scanner.dart';
 import 'package:test/test.dart';
@@ -7,13 +5,13 @@ import 'package:test/test.dart';
 void main() {
   group('TableDrivenScanner.match()', () {
     test('returns `null` if no pattern matches', () {
-      final scanner = Scanner(const [Pattern('abc')]);
+      final scanner = Scanner(const [Regex('abc')]);
       final match = scanner.match('xyz'.codeUnits.iterator..moveNext());
       expect(match, isNull);
     });
 
     test('matches empty patterns', () {
-      const pattern = Pattern('a?');
+      const pattern = Regex('a?');
       final scanner = Scanner([pattern]);
 
       final emptyInput = scanner.match(''.codeUnits.iterator..moveNext());
@@ -25,15 +23,15 @@ void main() {
     });
 
     test('is greedy (returns the longest match)', () {
-      const short = Pattern('a');
-      const long = Pattern('aa');
+      const short = Regex('a');
+      const long = Regex('aa');
       final scanner = Scanner([short, long]);
       final match = scanner.match('aaa'.codeUnits.iterator..moveNext());
       expect(match.pattern, long);
     });
 
     test('advances the iterator only while at least one pattern matches', () {
-      final scanner = Scanner(const [Pattern('abcde')]);
+      final scanner = Scanner(const [Regex('abcde')]);
       final it = 'abcxy'.codeUnits.iterator..moveNext();
       final match = scanner.match(it);
       expect(match, isNull);
@@ -41,8 +39,8 @@ void main() {
     });
 
     test('places the iterator behind the match if `rewind` is true', () {
-      const fours = Pattern('(aaaa)+', precedence: 0);
-      const fives = Pattern('(aaaaa)+', precedence: 1);
+      const fours = Regex('(aaaa)+', precedence: 0);
+      const fives = Regex('(aaaaa)+', precedence: 1);
       final scanner = Scanner([fours, fives]);
       final it = RuneIterator('${"a" * 9}b')..moveNext();
       final match = scanner.match(it, rewind: true);

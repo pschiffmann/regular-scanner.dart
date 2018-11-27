@@ -5,9 +5,9 @@ A `Scanner` class that matches an input string against multiple regular expressi
 
 ```dart
 @InjectScanner([
-  const Pattern('0[0-7]+', 'octal', precedence: 1),
-  const Pattern('[0-9]+', 'decimal', precedence: 0),
-  const Pattern('0x[0-9A-Fa-f]+', 'hexadecimal')
+  Regex('0[0-7]+', 'octal', precedence: 1),
+  Regex('[0-9]+', 'decimal', precedence: 0),
+  Regex('0x[0-9A-Fa-f]+', 'hexadecimal')
 ])
 const Scanner scanner = _$scanner;
 
@@ -92,18 +92,6 @@ _Inside a character set, `[]^-` must always be `\`-escaped, even if they appear 
 
 Usage
 -----
-
-### Importing the library
-
-The `regular_scanner.dart` library shadows the `Pattern` class from `dart:core`.
-If you need both, import either of them with a prefix:
-
-```dart
-import 'package:regular_scanner/regular_scanner.dart' as rs;
-// or:
-import 'dart:core' hide Pattern;
-import 'dart:core' as c show Pattern;
-```
 
 ### Handling a match
 

@@ -1,16 +1,14 @@
-import 'dart:core' hide Pattern;
-
 import 'package:charcode/ascii.dart';
 import 'package:meta/meta.dart' hide literal;
 
-import '../regular_scanner.dart' show Pattern;
+import '../regular_scanner.dart' show Regex;
 import 'ast.dart';
 import 'ranges.dart';
 import 'scanner.dart';
 
 /// Parses [pattern] into an [Expression] tree. Throws [FormatException] on
 /// invalid patterns, and [RangeError] on unpaired surrogates in [pattern].
-Root parse(Pattern pattern) {
+Root parse(Regex pattern) {
   final context = TokenIterator(pattern.regularExpression);
   if (!context.moveNext()) {
     throw FormatException(

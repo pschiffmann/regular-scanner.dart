@@ -1,7 +1,6 @@
 library regular_scanner.builder;
 
 import 'dart:async';
-import 'dart:core' hide Pattern;
 
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/constant/value.dart';
@@ -58,7 +57,7 @@ String resolveLocalName(ClassElement cls) {
       todo: "Import library `${cls.library}`, and don't hide this class");
 }
 
-/// This generator reads the [Pattern]s from an [InjectScanner] annotation and
+/// This generator reads the [Regex]s from an [InjectScanner] annotation and
 /// generates the Dart code required to instantiate a [Scanner] for these
 /// patterns.
 abstract class ScannerGenerator extends GeneratorForAnnotation<InjectScanner> {
@@ -124,7 +123,7 @@ TopLevelVariableElement validateAnnotatedElement(Element element) {
   return variable;
 }
 
-/// Extracts the initializer `const` expressions of the individual [Pattern]s
+/// Extracts the initializer `const` expressions of the individual [Regex]s
 /// in the [InjectScanner] annotation from the AST of [variable].
 List<PatternWithInitializer> resolveInjectScannerArguments(
     TopLevelVariableElement variable, DartObject injectScanner) {
@@ -186,7 +185,7 @@ ClassElement resolvePatternType(TopLevelVariableElement variable) {
 /// annotation. It contains the [regularExpression] and [precedence] that are
 /// needed for the scanner construction algorithm, and the information how to
 /// reconstruct the initial annotation argument.
-class PatternWithInitializer extends Pattern {
+class PatternWithInitializer extends Regex {
   PatternWithInitializer(
       String regularExpression, int precedence, this.initializerExpression)
       : super(regularExpression, precedence: precedence);

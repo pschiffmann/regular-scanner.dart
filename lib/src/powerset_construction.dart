@@ -5,11 +5,10 @@
 library regular_scanner.src.powerset_construction;
 
 import 'dart:collection';
-import 'dart:core' hide Pattern;
 
 import 'package:collection/collection.dart' hide binarySearch;
 
-import '../regular_scanner.dart' show Pattern;
+import '../regular_scanner.dart' show Regex;
 import 'ast.dart' as nfa;
 import 'dfa.dart' as dfa;
 import 'ranges.dart';
@@ -18,7 +17,7 @@ part 'closure.dart';
 part 'transitions.dart';
 
 ///
-List<dfa.State<T>> constructDfa<T extends Pattern>(
+List<dfa.State<T>> constructDfa<T extends Regex>(
     final List<nfa.Root> expressions) {
   if (expressions.isEmpty) {
     throw ArgumentError('patterns must not be empty');
@@ -64,7 +63,7 @@ List<dfa.State<T>> constructDfa<T extends Pattern>(
 
 /// Constructs an [nfa.State] from [closure]. [lookupId] is used to resolve the
 /// ids of successors of this state.
-dfa.State<T> constructState<T extends Pattern>(
+dfa.State<T> constructState<T extends Regex>(
     List<nfa.State> closure, int Function(List<nfa.State>) lookupId) {
   final transitions = <ConstructionTransition>[];
   final negated = <nfa.CharacterSet>[];
@@ -113,11 +112,11 @@ dfa.State<T> constructState<T extends Pattern>(
           .map((state) => state.root.pattern)));
 }
 
-/// Returns the element in [patterns] with the highest [Pattern.precedence], or
+/// Returns the element in [patterns] with the highest [Regex.precedence], or
 /// `null` if [patterns] is empty. Throws a [ConflictingPatternException] if
 /// there is no single highest precedence pattern.
-Pattern highestPrecedencePattern(Iterable<Pattern> patterns) {
-  final highestPrecedence = Set<Pattern>();
+Regex highestPrecedencePattern(Iterable<Regex> patterns) {
+  final highestPrecedence = Set<Regex>();
   for (final pattern in patterns) {
     if (highestPrecedence.isEmpty) {
       highestPrecedence.add(pattern);
@@ -171,13 +170,13 @@ class NfaStartState implements nfa.State {
   int get id => throw UnsupportedError('Undefined for this mock state');
 }
 
-/// Thrown when multiple [Pattern]s in a scanner match the same input and all
-/// have the same [Pattern.precedence].
+/// Thrown when multiple [Regex]s in a scanner match the same input and all
+/// have the same [Regex.precedence].
 class ConflictingPatternException implements Exception {
   ConflictingPatternException(this.patterns, this.input)
       : assert(patterns.isNotEmpty);
 
-  final Set<Pattern> patterns;
+  final Set<Regex> patterns;
   final String input;
 
   @override

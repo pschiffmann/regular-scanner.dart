@@ -1,9 +1,7 @@
-import 'dart:core' hide Pattern;
-
 import '../regular_scanner.dart';
 import 'ranges.dart';
 
-class State<T extends Pattern> {
+class State<T extends Regex> {
   const State(this.transitions,
       {this.defaultTransition = State.errorId, this.accept});
 
@@ -43,7 +41,7 @@ class Transition extends Range {
       '-> $successor';
 }
 
-class TableDrivenScanner<T extends Pattern> extends Scanner<T> {
+class TableDrivenScanner<T extends Regex> extends Scanner<T> {
   const TableDrivenScanner(List<T> patterns, this.states)
       : super.setPatterns(patterns);
 

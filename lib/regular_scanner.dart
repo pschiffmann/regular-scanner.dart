@@ -1,14 +1,4 @@
-///
-/// This library shadows the [core.Pattern] class from `dart:core`, so you might
-/// want to import it with a prefix:
-///
-/// ```dart
-/// import 'package:regular_scanner/scanner.dart' as rs;
-/// ```
 library regular_scanner.scanner;
-
-import 'dart:core' hide Pattern;
-import 'dart:core' as core show Pattern;
 
 import 'src/dfa.dart' show State, TableDrivenScanner;
 import 'src/parser.dart' show parse;
@@ -18,17 +8,17 @@ export 'src/dfa.dart' show State, Transition;
 export 'src/powerset_construction.dart' show ConflictingPatternException;
 
 /// This annotation marks a `const` variable as an injection point for a
-/// [Scanner], and specifies which [Pattern]s that scanner matches.
+/// [Scanner], and specifies which [Regex]s that scanner matches.
 class InjectScanner {
   const InjectScanner(this.patterns);
 
-  final List<Pattern> patterns;
+  final List<Regex> patterns;
 }
 
 /// Used as an argument to [InjectScanner] to specify the patterns that this
 /// [Scanner] matches.
-class Pattern {
-  const Pattern(this.regularExpression, {this.precedence = 0})
+class Regex {
+  const Regex(this.regularExpression, {this.precedence = 0})
       : assert(precedence >= 0);
 
   final String regularExpression;
@@ -41,7 +31,7 @@ class Pattern {
 
 /// Returned by [Scanner.match] to indicate which [pattern] matched a given
 /// [input].
-class MatchResult<T extends Pattern> {
+class MatchResult<T extends Regex> {
   MatchResult(this.pattern, this.input, this.start, this.end)
       : assert(0 <= start && start <= end && end < input.length);
 
@@ -64,7 +54,7 @@ class MatchResult<T extends Pattern> {
   int get length => end - start;
 }
 
-abstract class Scanner<T extends Pattern> {
+abstract class Scanner<T extends Regex> {
   factory Scanner(Iterable<T> patterns) {
     final patternsList = List<T>.unmodifiable(patterns);
     assert(patternsList.length == patternsList.toSet().length,

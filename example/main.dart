@@ -1,19 +1,19 @@
-import 'package:regular_scanner/regular_scanner.dart' as rs;
+import 'package:regular_scanner/regular_scanner.dart';
 
 part 'main.g.dart';
 
 const whitespace = NamedPattern('[ \t\r\n]+', 'whitespace');
 
-@rs.InjectScanner([
+@InjectScanner([
   NamedPattern('0b[01]+', 'binary'),
   NamedPattern('0[0-7]+', 'octal', precedence: 1),
   NamedPattern('[0-9]+', 'decimal', precedence: 0),
   NamedPattern('0x[0-9A-Fa-f]+', 'hexadecimal'),
   whitespace
 ])
-const rs.Scanner<NamedPattern> scanner = _$scanner;
+const Scanner<NamedPattern> scanner = _$scanner;
 
-class NamedPattern extends rs.Pattern {
+class NamedPattern extends Regex {
   const NamedPattern(String regularExpression, this.name, {int precedence = 0})
       : super(regularExpression, precedence: precedence);
 
