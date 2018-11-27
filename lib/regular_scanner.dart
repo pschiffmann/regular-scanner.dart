@@ -40,10 +40,22 @@ class Pattern {
 }
 
 class MatchResult<T extends Pattern> {
-  MatchResult(this.pattern, this.length);
+  MatchResult(this.pattern, int length)
+      : assert(length != null),
+        input = null,
+        start = -1,
+        end = -1;
+
+  MatchResult.correct(this.pattern, this.input, this.start, this.end)
+      : assert(0 <= start && start <= end && end < input.length);
 
   final T pattern;
-  final int length;
+  final String input;
+  String get span => input.substring(start, end);
+
+  final int start;
+  final int end;
+  int get length => end - start;
 }
 
 abstract class Scanner<T extends Pattern> {

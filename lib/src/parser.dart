@@ -1,172 +1,15 @@
 import 'dart:core' hide Pattern;
 
 import 'package:charcode/ascii.dart';
-import 'package:meta/meta.dart';
+import 'package:meta/meta.dart' hide literal;
 
 import '../regular_scanner.dart' show Pattern;
 import 'ast.dart';
 import 'ranges.dart';
+import 'scanner.dart';
 
-enum TokenType {
-  /// Characters that only match themselves.
-  literal,
-
-  /// `.` matches any character.  Only  recognized while
-  /// [TokenIterator.insideCharacterSet] is `false`.
-  dot,
-
-  /// `+`, `*` and `?` repetition modifiers.  Only  recognized while
-  /// [TokenIterator.insideCharacterSet] is `false`.
-  repetition,
-
-  /// `|` separates two alternative patterns.  Only recognized while
-  /// [TokenIterator.insideCharacterSet] is `false`.
-  alternation,
-
-  /// `(` starts a group that can be repeated as a whole. Only recognized while
-  /// [TokenIterator.insideCharacterSet] is `false`.
-  groupStart,
-
-  /// `)` marks the end of a [groupStart]. Only recognized while
-  /// [TokenIterator.insideCharacterSet] is `false`.
-  groupEnd,
-
-  /// `[` starts a [CharacterSet].
-  characterSetStart,
-
-  /// `]` marks the end of a [characterSetStart].
-  characterSetEnd,
-
-  /// `-` separates the lower and upper bounds in a [CharacterSet] range. Only
-  /// recognized while [TokenIterator.insideCharacterSet] is `true`.
-  rangeSeparator,
-
-  /// `^` as the first character in a [CharacterSet] sets [CharacterSet.negated]
-  /// to `true`. Only recognized while  [TokenIterator.insideCharacterSet] is
-  /// `true`.
-  setNegation
-}
-
-const List<int> escapeNormal = [$backslash];
-const List<int> escapeCharacterSet = [$backslash];
-
-/// Presents [pattern] as a sequence of regular expression tokens. [current]
-/// contains the rune, or lexeme, and [type] contains the resolved type for that
-/// token. Backslash-escaped characters are recognized as [TokenType.literal]
-/// tokens, and the escape characters are not exposed as iteration elements.
-class TokenIterator implements Iterator<int> {
-  TokenIterator(this.pattern) : _runes = RuneIterator(pattern);
-
-  /// This string that is scanned by this iterator.
-  final String pattern;
-
-  /// [String.runes] of [pattern].
-  final RuneIterator _runes;
-
-  /// The resolved type of [current].
-  TokenType get type => _type;
-  TokenType _type;
-
-  /// This flag changes which characters are recognized as [TokenType.literal]s
-  /// or special characters. It is set by [parseCharacterSet].
-  bool insideCharacterSet = false;
-
-  @override
-  int get current => _runes.current;
-
-  /// Forwards [RuneIterator.rawIndex].
-  int get index => _runes.rawIndex;
-
-  /// Reads the next character from [pattern] and updates [type]. If there is no
-  /// next character and [onEndOfString] is not `null`, throws a
-  /// [FormatException] with [onEndOfString] as message.
-  @override
-  bool moveNext({String onEndOfString}) {
-    if (!_runes.moveNext()) {
-      if (onEndOfString != null) error(onEndOfString, pattern.length - 1);
-      _type = null;
-      return false;
-    }
-    _type =
-        insideCharacterSet ? _resolveTypeCharacterSet() : _resolveTypeNormal();
-    return true;
-  }
-
-  /// Resolve the [type] of [current] while [insideCharacterSet] is `false`.
-  TokenType _resolveTypeNormal() {
-    switch (current) {
-      case $backslash:
-        if (!_runes.moveNext()) {
-          error(
-              r'An escape character `\` must not be '
-              'the last character in a pattern',
-              pattern.length - 1);
-        }
-        if (!escapeNormal.contains(current)) {
-          // error(r'Unrecognized escape sequence `\$char`');
-        }
-        continue literal;
-      case $bar:
-        return TokenType.alternation;
-      case $lparen:
-        return TokenType.groupStart;
-      case $rparen:
-        return TokenType.groupEnd;
-      case $lbracket:
-        return TokenType.characterSetStart;
-      case $rbracket:
-        return TokenType.characterSetEnd;
-      case $asterisk:
-      case $plus:
-      case $question:
-        return TokenType.repetition;
-      case $dot:
-        return TokenType.dot;
-      literal:
-      default:
-        return TokenType.literal;
-    }
-    throw UnimplementedError('This line is unreachable');
-  }
-
-  /// Resolve the [type] of [current] while [insideCharacterSet] is `true`.
-  TokenType _resolveTypeCharacterSet() {
-    switch (current) {
-      case $backslash:
-        if (!_runes.moveNext()) {
-          error(
-              r'An escape character `\` must not be '
-              'the last character in a pattern',
-              pattern.length - 1);
-        }
-        if (!escapeCharacterSet.contains(current)) {
-          // error(r'Unrecognized escape sequence `\$char`');
-        }
-        continue literal;
-      case $lbracket:
-        return TokenType.characterSetStart;
-      case $rbracket:
-        return TokenType.characterSetEnd;
-      case $minus:
-        return TokenType.rangeSeparator;
-      case $caret:
-        return TokenType.setNegation;
-      literal:
-      default:
-        return TokenType.literal;
-    }
-    throw UnimplementedError('This line is unreachable');
-  }
-
-  /// Convenience method to throw a [FormatException] with [message] and
-  /// [offset]. Uses the rune index of [current] if [offset] is omitted.
-  @alwaysThrows
-  void error(String message, [int offset]) =>
-      throw FormatException(message, pattern, offset ?? index);
-}
-
-/// Parses [pattern] into an [Expression] tree. Throws a [FormatException] on
-/// invalid patterns.
+/// Parses [pattern] into an [Expression] tree. Throws [FormatException] on
+/// invalid patterns, and [RangeError] on unpaired surrogates in [pattern].
 Root parse(Pattern pattern) {
   final context = TokenIterator(pattern.regularExpression);
   if (!context.moveNext()) {
@@ -174,29 +17,31 @@ Root parse(Pattern pattern) {
         'Empty regular expression', pattern.regularExpression);
   }
   final expression = parseUnknown(context, expectGroupEnd: false);
-  assert(context.type == null);
+  assert(context.current == null);
 
   return Root(expression, pattern);
 }
 
-Literal parseLiteral(TokenIterator context) {
-  assert(context.type == TokenType.literal);
-  final char = context.current;
-  return Literal(char, parseRepetiton(context..moveNext()));
+Expression /* Literal|Sequence */ parseLiteral(TokenIterator context) {
+  assert(context.current == literal);
+  return context.literalIsSingleCodeUnit
+      ? Literal(context.codeUnit, parseRepetiton(context..moveNext()))
+      : Sequence(context.codeUnits.map((int codeUnit) => Literal(codeUnit)),
+          parseRepetiton(context..moveNext()));
 }
 
 Dot parseDot(TokenIterator context) {
-  assert(context.type == TokenType.dot);
+  assert(context.current == dot);
   return Dot(parseRepetiton(context..moveNext()));
 }
 
-/// If the current token is a repetition, returns the according repetition
+/// If the current token is a [repetition], returns the according repetition
 /// constant and advances the token iterator. Else, returns [Repetition.one].
 Repetition parseRepetiton(TokenIterator context) {
-  if (context.type != TokenType.repetition) {
+  if (context.current != repetition) {
     return Repetition.one;
   }
-  final char = context.current;
+  final char = context.codeUnit;
   context.moveNext();
   switch (char) {
     case $plus:
@@ -215,13 +60,15 @@ Repetition parseRepetiton(TokenIterator context) {
 /// only a single state pattern was found.
 ///
 /// If [expectGroupEnd] is `true`, stops parsing when reaching the first
-/// [TokenType.groupEnd]. Else, throws a [FormatException] when finding that
+/// [groupEnd]. Else, throws a [FormatException] when finding that
 /// character.
 Expression parseUnknown(TokenIterator context,
     {@required bool expectGroupEnd}) {
-  assert(context.type != null);
+  assert(context.current != null);
 
+  // All fully parsed [choice]-separated expressions found so far.
   final alternatives = <Expression>[];
+  // The currently parsed sequence.
   final sequence = <Expression>[];
 
   void nextAlternative() {
@@ -240,35 +87,39 @@ Expression parseUnknown(TokenIterator context,
   }
 
   loop:
-  while (context.type != null) {
-    switch (context.type) {
-      case TokenType.literal:
+  while (context.current != null) {
+    switch (context.current) {
+      case literal:
         sequence.add(parseLiteral(context));
         break;
-      case TokenType.dot:
+      case dot:
         sequence.add(parseDot(context));
         break;
-      case TokenType.repetition:
+      case repetition:
         context.error('Unescaped repetition character');
         break;
-      case TokenType.alternation:
+      case choice:
         nextAlternative();
         context.moveNext();
         break;
-      case TokenType.groupStart:
+      case groupStart:
         sequence.add(parseGroup(context));
         break;
-      case TokenType.groupEnd:
+      case groupEnd:
         if (!expectGroupEnd) {
           context.error('Unbalanced `)`');
         }
         break loop;
-      case TokenType.characterSetStart:
+      case characterSetStart:
         sequence.add(parseCharacterSet(context));
         break;
-      case TokenType.characterSetEnd:
+      case characterSetEnd:
         context.error('Unbalanced `]`');
         break;
+      case characterSetAliases:
+        throw UnimplementedError(
+            'Currently not supported. This will be implemented as part of '
+            'https://github.com/pschiffmann/regular-scanner.dart/issues/5');
       default:
         throw UnimplementedError('This case is unreachable');
     }
@@ -281,14 +132,14 @@ Expression parseUnknown(TokenIterator context,
 }
 
 Expression parseGroup(TokenIterator context) {
-  assert(context.type == TokenType.groupStart);
+  assert(context.current == groupStart);
 
   final startIndex = context.index;
-  context.moveNext(onEndOfString: 'Unclosed `(`');
+  context.moveNext(onPatternEnd: 'Unclosed `(`');
 
   final result = parseUnknown(context, expectGroupEnd: true);
 
-  if (context.type != TokenType.groupEnd) {
+  if (context.current != groupEnd) {
     context.error('Unclosed `(`', startIndex);
   }
   context.moveNext();
@@ -297,59 +148,44 @@ Expression parseGroup(TokenIterator context) {
 }
 
 CharacterSet parseCharacterSet(TokenIterator context) {
-  assert(context.type == TokenType.characterSetStart);
+  assert(context.current == characterSetStart);
   context.insideCharacterSet = true;
 
   final startIndex = context.index;
-  context.moveNext(onEndOfString: 'Unclosed `[`');
+  context.moveNext();
 
-  final negated = context.type == TokenType.setNegation;
-  if (negated) {
-    context.moveNext();
-  }
+  final negated = context.current == negation;
+  if (negated) context.moveNext();
 
-  final runes = <Range>[];
-  loop:
-  while (context.type != null) {
-    switch (context.type) {
-      case TokenType.literal:
-        final lowerBound = context.current;
-        context.moveNext();
-        if (context.type != TokenType.rangeSeparator) {
-          runes.add(Range.single(lowerBound));
-          break;
-        }
-        context.moveNext();
-        // ignore: invariant_booleans
-        if (context.type == null) {
-          break loop;
-        } else if (context.type != TokenType.literal) {
-          continue unescapedSpecialCharacter;
-        }
-        runes.add(Range(lowerBound, context.current));
-        context.moveNext();
-        break;
-      unescapedSpecialCharacter:
-      case TokenType.characterSetStart:
-      case TokenType.rangeSeparator:
-      case TokenType.setNegation:
-        context.error(
-            '`${String.fromCharCode(context.current)}` must be escaped in '
-            'character sets, even if it is the first or last character');
-        break;
-      case TokenType.characterSetEnd:
-        break loop;
-      default:
-        throw UnimplementedError('This case is unreachable');
+  /// Returns [TokenIterator.codeUnit] if the current token is a [literal], and
+  /// advances the iterator by one element. Else, throws a [FormatException].
+  int readLiteralAdvance() {
+    if (context.current == null) {
+      context.error('Unclosed `[`', startIndex);
+    } else if (context.current != literal) {
+      context.error('The special characters `[]^-\` must always be escaped '
+          'inside character groups');
+    } else if (!context.literalIsSingleCodeUnit) {
+      context.error('Surrogate characters are currently not supported: '
+          'https://github.com/pschiffmann/regular-scanner.dart/issues/7');
     }
+    final codeUnit = context.codeUnit;
+    context.moveNext();
+    return codeUnit;
   }
 
-  if (context.type != TokenType.characterSetEnd) {
-    context.error('Unclosed `[`', startIndex);
+  final ranges = <Range>[];
+  while (context.current != characterSetEnd) {
+    final lowerBound = readLiteralAdvance();
+    if (context.current != rangeSeparator) {
+      ranges.add(Range.single(lowerBound));
+      continue;
+    }
+    context.moveNext();
+    ranges.add(Range(lowerBound, readLiteralAdvance()));
   }
   context
     ..insideCharacterSet = false
     ..moveNext();
-
-  return CharacterSet(runes, negated)..repetition = parseRepetiton(context);
+  return CharacterSet(ranges, negated)..repetition = parseRepetiton(context);
 }
