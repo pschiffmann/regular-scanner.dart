@@ -42,8 +42,8 @@ class Transition extends Range {
 }
 
 class TableDrivenScanner<T extends Regex> extends Scanner<T> {
-  const TableDrivenScanner(List<T> patterns, this.states)
-      : super.setPatterns(patterns);
+  const TableDrivenScanner(List<T> regexes, this.states)
+      : super.setRegexes(regexes);
 
   final List<State<T>> states;
 

@@ -5,17 +5,17 @@ import 'src/parser.dart' show parse;
 import 'src/powerset_construction.dart' show constructDfa;
 
 export 'src/dfa.dart' show State, Transition;
-export 'src/powerset_construction.dart' show ConflictingPatternException;
+export 'src/powerset_construction.dart' show ConflictingRegexException;
 
 /// This annotation marks a `const` variable as an injection point for a
 /// [Scanner], and specifies which [Regex]s that scanner matches.
 class InjectScanner {
-  const InjectScanner(this.patterns);
+  const InjectScanner(this.regexes);
 
-  final List<Regex> patterns;
+  final List<Regex> regexes;
 }
 
-/// Used as an argument to [InjectScanner] to specify the patterns that this
+/// Used as an argument to [InjectScanner] to specify the [Regex]es that this
 /// [Scanner] matches.
 class Regex {
   const Regex(this.regularExpression, {this.precedence = 0})
@@ -29,18 +29,18 @@ class Regex {
   String toString() => '/$regularExpression/';
 }
 
-/// Returned by [Scanner.match] to indicate which [pattern] matched a given
+/// Returned by [Scanner.match] to indicate which [regex] matched a given
 /// [input].
 class MatchResult<T extends Regex> {
-  MatchResult(this.pattern, this.input, this.start, this.end)
+  MatchResult(this.regex, this.input, this.start, this.end)
       : assert(0 <= start && start <= end && end < input.length);
 
-  final T pattern;
+  final T regex;
 
   /// The input string that was passed to [Scanner.match].
   final String input;
 
-  /// The span in [input] that was matched by [pattern].
+  /// The span in [input] that was matched by [regex].
   String get span => input.substring(start, end);
 
   /// Contains the index (in [String.codeUnits]) of the first matched character.
@@ -55,27 +55,27 @@ class MatchResult<T extends Regex> {
 }
 
 abstract class Scanner<T extends Regex> {
-  factory Scanner(Iterable<T> patterns) {
-    final patternsList = List<T>.unmodifiable(patterns);
-    assert(patternsList.length == patternsList.toSet().length,
-        'patterns contains duplicates');
-    return Scanner.withParseTable(patternsList,
-        constructDfa(patternsList.map(parse).toList(growable: false)));
+  factory Scanner(Iterable<T> regexes) {
+    final regexesList = List<T>.unmodifiable(regexes);
+    if (regexesList.length != regexesList.toSet().length)
+      throw ArgumentError('regexes contains duplicates');
+    return Scanner.withParseTable(regexesList,
+        constructDfa(regexesList.map(parse).toList(growable: false)));
   }
 
   /// Internal constructor. Only visible so that generated code can instantiate
   /// this class as a `const` expression.
-  const factory Scanner.withParseTable(
-      List<T> patterns, List<State<T>> states) = TableDrivenScanner<T>;
+  const factory Scanner.withParseTable(List<T> regexes, List<State<T>> states) =
+      TableDrivenScanner<T>;
 
   /// This constructor only exists so this class can be subclassed.
-  const Scanner.setPatterns(this.patterns);
+  const Scanner.setRegexes(this.regexes);
 
-  /// The patterns that are matched by this scanner, in unchanged order.
-  final List<T> patterns;
+  /// The regexes that are matched by this scanner, in unchanged order.
+  final List<T> regexes;
 
-  /// Matches [characters] against the patterns in this scanner. Returns the
-  /// longest possible match, or `null` if no pattern matched.
+  /// Matches [characters] against the [regexes]. Returns the longest possible
+  /// match, or `null` if no regex matched.
   ///
   /// The matching starts at `characters.current`. This means the iterator must
   /// be advanced to a valid state before calling this function. After this
@@ -108,7 +108,7 @@ abstract class Scanner<T extends Regex> {
       } else if (onError != null) {
         result.add(onError(characters));
       } else {
-        throw FormatException("input didn't match any pattern", characters);
+        throw FormatException("input didn't match any regex", characters);
       }
     }
     return result;

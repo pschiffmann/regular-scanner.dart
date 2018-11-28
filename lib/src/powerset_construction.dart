@@ -17,10 +17,9 @@ part 'closure.dart';
 part 'transitions.dart';
 
 ///
-List<dfa.State<T>> constructDfa<T extends Regex>(
-    final List<nfa.Root> expressions) {
-  if (expressions.isEmpty) {
-    throw ArgumentError('patterns must not be empty');
+List<dfa.State<T>> constructDfa<T extends Regex>(final List<nfa.Root> regexes) {
+  if (regexes.isEmpty) {
+    throw ArgumentError('regexes must not be empty');
   }
 
   /// Maps NFA state closures to [dfa.State.id]s.
@@ -46,7 +45,7 @@ List<dfa.State<T>> constructDfa<T extends Regex>(
 
   // Initialize [queue] with a start state. Its closure doesn't need to be
   // sorted because it is never looked up again.
-  lookupId(expressions.map((root) => NfaStartState(root)).toList());
+  lookupId(regexes.map((root) => NfaStartState(root)).toList());
   while (unresolved.isNotEmpty) {
     final current = unresolved.removeFirst();
     final closure = current.key;
@@ -107,27 +106,27 @@ dfa.State<T> constructState<T extends Regex>(
 
   return dfa.State<T>(finalizeTransitions(transitions, lookupId),
       defaultTransition: lookupId(defaultTransition.toList(growable: false)),
-      accept: highestPrecedencePattern(closure
+      accept: highestPrecedenceRegex(closure
           .where((state) => state.accepting)
-          .map((state) => state.root.pattern)));
+          .map((state) => state.root.regex)));
 }
 
-/// Returns the element in [patterns] with the highest [Regex.precedence], or
-/// `null` if [patterns] is empty. Throws a [ConflictingPatternException] if
-/// there is no single highest precedence pattern.
-Regex highestPrecedencePattern(Iterable<Regex> patterns) {
+/// Returns the element in [regexes] with the highest [Regex.precedence], or
+/// `null` if [regexes] is empty. Throws a [ConflictingRegexException] if
+/// there is no single highest precedence regex.
+Regex highestPrecedenceRegex(Iterable<Regex> regexes) {
   final highestPrecedence = Set<Regex>();
-  for (final pattern in patterns) {
+  for (final regex in regexes) {
     if (highestPrecedence.isEmpty) {
-      highestPrecedence.add(pattern);
+      highestPrecedence.add(regex);
       continue;
     }
-    if (highestPrecedence.first.precedence == pattern.precedence) {
-      highestPrecedence.add(pattern);
-    } else if (pattern.precedence > highestPrecedence.first.precedence) {
+    if (highestPrecedence.first.precedence == regex.precedence) {
+      highestPrecedence.add(regex);
+    } else if (regex.precedence > highestPrecedence.first.precedence) {
       highestPrecedence
         ..clear()
-        ..add(pattern);
+        ..add(regex);
     }
   }
 
@@ -137,7 +136,7 @@ Regex highestPrecedencePattern(Iterable<Regex> patterns) {
     case 1:
       return highestPrecedence.first;
     default:
-      throw ConflictingPatternException(highestPrecedence, null);
+      throw ConflictingRegexException(highestPrecedence, null);
   }
 }
 
@@ -172,14 +171,14 @@ class NfaStartState implements nfa.State {
 
 /// Thrown when multiple [Regex]s in a scanner match the same input and all
 /// have the same [Regex.precedence].
-class ConflictingPatternException implements Exception {
-  ConflictingPatternException(this.patterns, this.input)
-      : assert(patterns.isNotEmpty);
+class ConflictingRegexException implements Exception {
+  ConflictingRegexException(this.regexes, this.input)
+      : assert(regexes.isNotEmpty);
 
-  final Set<Regex> patterns;
+  final Set<Regex> regexes;
   final String input;
 
   @override
-  String toString() => "The following patterns match the string '$input': "
-      '${patterns.join(", ")}';
+  String toString() => "The following regexes match the string '$input': "
+      '${regexes.join(", ")}';
 }

@@ -36,7 +36,7 @@ abstract class Expression {
 abstract class State extends Expression {
   State(Repetition repetition) : super(repetition);
 
-  /// Marks the final states in a pattern. If this state is entered during a
+  /// Marks the final states in a [Regex]. If this state is entered during a
   /// matching process, the input gets accepted. This attribute is set when the
   /// expression tree is sealed by a [Root].
   bool get accepting => _accepting;
@@ -72,7 +72,7 @@ class Literal extends State {
   String toString() => '${String.fromCharCode(rune)}$repetition';
 }
 
-/// A dot pattern matches any single character.
+/// A dot matches any single character.
 class Dot extends State {
   Dot([Repetition repetition = Repetition.one]) : super(repetition);
 
@@ -267,9 +267,9 @@ class Alternation extends DelegatingExpression {
 /// children are effectively immutable.
 ///
 /// An expression root has only a single [child], and stores a reference to the
-/// [pattern] it was parsed from.
+/// [regex] it was parsed from.
 class Root extends DelegatingExpression {
-  Root(Expression child, this.pattern) : super([child], Repetition.one) {
+  Root(Expression child, this.regex) : super([child], Repetition.one) {
     for (final child in last) {
       child._accepting = true;
     }
@@ -293,7 +293,7 @@ class Root extends DelegatingExpression {
   Root get root => this;
 
   Expression get child => children.first;
-  final Regex pattern;
+  final Regex regex;
 
   @override
   Iterable<State> get first =>

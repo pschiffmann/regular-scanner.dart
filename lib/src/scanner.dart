@@ -47,13 +47,12 @@ const _characterSetEscapes = TokenType(r'\\[\^\-]', _extractAsciiCharacter);
 const rangeSeparator = TokenType(r'-');
 const negation = TokenType(r'^');
 
-/// Pseudo pattern that is used by [TokenIterator] to indicate that the current
-/// character should be treated as a literal.
+/// Indicates that the current character should be treated as a literal.
 ///
-/// The scanners don't actually match against this pattern, because literal
+/// The scanners don't actually match against this regex, because literal
 /// characters can be made of surrogate pairs that would have be matched as
 /// `..` (and we'd have to add even more dots when we add grapheme cluster
-/// support). Instead, whenever *none* of the above patterns match, we treat
+/// support). Instead, whenever *none* of the above regexes match, we treat
 /// that as a literal.
 const literal = TokenType('.');
 
@@ -106,7 +105,7 @@ int _extractConrolCharacter(MatchResult m) {
 }
 
 int _extractUnicodeCodePoint(MatchResult m) {
-  assert(m.pattern == _unicodeEscape);
+  assert(m.regex == _unicodeEscape);
 
   const prefixLength = r'\u{'.length;
   const suffixLength = r'}'.length;
@@ -123,8 +122,8 @@ int _extractUnicodeCodePoint(MatchResult m) {
 }
 
 class TokenType extends Regex {
-  const TokenType(String pattern, [this.extractCodePoint = _extractIdentity])
-      : super(pattern);
+  const TokenType(String regex, [this.extractCodePoint = _extractIdentity])
+      : super(regex);
 
   final ValueExtractor extractCodePoint;
   bool get convertToLiteral => extractCodePoint != _extractIdentity;
@@ -186,15 +185,15 @@ class TokenIterator implements Iterator<Regex> {
   bool insideCharacterSet = false;
 
   /// Reads the next character from [pattern] and updates [current]. If there is
-  /// no next character and [onPatternEnd] is not `null`, throws a
-  /// [FormatException] with [onPatternEnd] as message.
+  /// no next character and [onRegexEnd] is not `null`, throws a
+  /// [FormatException] with [onRegexEnd] as message.
   ///
   /// Throws a [RangeError] if an unpaired surrogate is found.
   @override
-  bool moveNext({String onPatternEnd}) {
+  bool moveNext({String onRegexEnd}) {
     final position = _nextPosition;
     if (position >= pattern.length) {
-      if (onPatternEnd != null) error(onPatternEnd, pattern.length - 1);
+      if (onRegexEnd != null) error(onRegexEnd, pattern.length - 1);
       return false;
     }
 
@@ -202,10 +201,10 @@ class TokenIterator implements Iterator<Regex> {
         (insideCharacterSet ? characterSetScanner : defaultContextScanner)
             .match(pattern.codeUnits.skip(position).iterator..moveNext());
     if (match != null) {
-      if (match.pattern.convertToLiteral) {
+      if (match.regex.convertToLiteral) {
         // Call `codePointToRune` and `extractCodePoint` first, because they can
         // throw exceptions and would leave this object in an undefined state.
-        _rune = codePointToRune(match.pattern.extractCodePoint(match));
+        _rune = codePointToRune(match.regex.extractCodePoint(match));
         _current = literal;
       } else {
         // If [TokenType.convertToLiteral] is false, the pattern matches either
@@ -214,7 +213,7 @@ class TokenIterator implements Iterator<Regex> {
         assert(pattern.length == 1 ||
             pattern.length == 2 &&
                 pattern.codeUnitAt(match.start) == $backslash);
-        _current = match.pattern;
+        _current = match.regex;
         _rune = pattern.codeUnitAt(match.end - 1);
       }
       _nextPosition = match.end;

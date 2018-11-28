@@ -128,20 +128,20 @@ void main() {
         'and negated character set states',
         () {});
 
-    test('resolves the accepting pattern if one exists', () {});
+    test('resolves the accepting regex if one exists', () {});
 
-    test('resolves the accepting pattern to `null` if none exists', () {});
+    test('resolves the accepting regex to `null` if none exists', () {});
   });
 
-  group('highestPrecedencePattern', () {
+  group('highestPrecedenceRegex', () {
     test('returns `null` for empty lists', () {
-      expect(highestPrecedencePattern([]), isNull);
+      expect(highestPrecedenceRegex([]), isNull);
     });
 
-    test('returns the highest precedence pattern if only one exists', () {
+    test('returns the highest precedence regex if only one exists', () {
       final expected = const Regex('a', precedence: 3);
       expect(
-          highestPrecedencePattern([
+          highestPrecedenceRegex([
             const Regex('b', precedence: 1),
             expected,
             const Regex('c', precedence: 1)
@@ -149,10 +149,9 @@ void main() {
           expected);
     });
 
-    test('throws if multiple patterns have the same precedence', () {
-      expect(
-          () => highestPrecedencePattern([const Regex('a'), const Regex('b')]),
-          throwsA(const TypeMatcher<ConflictingPatternException>()));
+    test('throws if multiple regexes have the same precedence', () {
+      expect(() => highestPrecedenceRegex([const Regex('a'), const Regex('b')]),
+          throwsA(const TypeMatcher<ConflictingRegexException>()));
     });
   });
 }

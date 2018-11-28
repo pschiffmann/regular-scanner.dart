@@ -4,22 +4,22 @@ import 'package:test/test.dart';
 
 void main() {
   group('TableDrivenScanner.match()', () {
-    test('returns `null` if no pattern matches', () {
+    test('returns `null` if no regex matches', () {
       final scanner = Scanner(const [Regex('abc')]);
       final match = scanner.match('xyz'.codeUnits.iterator..moveNext());
       expect(match, isNull);
     });
 
-    test('matches empty patterns', () {
-      const pattern = Regex('a?');
-      final scanner = Scanner([pattern]);
+    test('matches empty regexes', () {
+      const regex = Regex('a?');
+      final scanner = Scanner([regex]);
 
       final emptyInput = scanner.match(''.codeUnits.iterator..moveNext());
-      expect(emptyInput.pattern, pattern);
+      expect(emptyInput.regex, regex);
 
       final nonMatchingInput =
           scanner.match('b'.codeUnits.iterator..moveNext());
-      expect(nonMatchingInput.pattern, pattern);
+      expect(nonMatchingInput.regex, regex);
     });
 
     test('is greedy (returns the longest match)', () {
@@ -27,10 +27,10 @@ void main() {
       const long = Regex('aa');
       final scanner = Scanner([short, long]);
       final match = scanner.match('aaa'.codeUnits.iterator..moveNext());
-      expect(match.pattern, long);
+      expect(match.regex, long);
     });
 
-    test('advances the iterator only while at least one pattern matches', () {
+    test('advances the iterator only while at least one regex matches', () {
       final scanner = Scanner(const [Regex('abcde')]);
       final it = 'abcxy'.codeUnits.iterator..moveNext();
       final match = scanner.match(it);
@@ -44,7 +44,7 @@ void main() {
       final scanner = Scanner([fours, fives]);
       final it = RuneIterator('${"a" * 9}b')..moveNext();
       final match = scanner.match(it, rewind: true);
-      expect(match.pattern, fours);
+      expect(match.regex, fours);
       expect(match.length, 8);
       expect(it.rawIndex, 8);
     });

@@ -6,7 +6,7 @@ part of 'main.dart';
 // TableDrivenScannerGenerator
 // **************************************************************************
 
-const _$scanner = Scanner<NamedPattern>.withParseTable([], [
+const _$scanner = Scanner<NamedRegex>.withParseTable([], [
   State([
     Transition(9, 10, 1),
     Transition(13, 13, 1),
@@ -26,18 +26,18 @@ const _$scanner = Scanner<NamedPattern>.withParseTable([], [
     Transition(120, 120, 6),
   ],
       defaultTransition: -1,
-      accept: NamedPattern('[0-9]+', 'decimal', precedence: 0)),
+      accept: NamedRegex('[0-9]+', 'decimal', precedence: 0)),
   State([
     Transition(48, 57, 3),
   ],
       defaultTransition: -1,
-      accept: NamedPattern('[0-9]+', 'decimal', precedence: 0)),
+      accept: NamedRegex('[0-9]+', 'decimal', precedence: 0)),
   State([
     Transition(48, 55, 4),
     Transition(56, 57, 3),
   ],
       defaultTransition: -1,
-      accept: NamedPattern('0[0-7]+', 'octal', precedence: 1)),
+      accept: NamedRegex('0[0-7]+', 'octal', precedence: 1)),
   State([
     Transition(48, 49, 7),
   ], defaultTransition: -1),
@@ -48,12 +48,12 @@ const _$scanner = Scanner<NamedPattern>.withParseTable([], [
   ], defaultTransition: -1),
   State([
     Transition(48, 49, 7),
-  ], defaultTransition: -1, accept: NamedPattern('0b[01]+', 'binary')),
+  ], defaultTransition: -1, accept: NamedRegex('0b[01]+', 'binary')),
   State([
     Transition(48, 57, 8),
     Transition(65, 70, 8),
     Transition(97, 102, 8),
   ],
       defaultTransition: -1,
-      accept: NamedPattern('0x[0-9A-Fa-f]+', 'hexadecimal')),
+      accept: NamedRegex('0x[0-9A-Fa-f]+', 'hexadecimal')),
 ]);

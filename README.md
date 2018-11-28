@@ -14,7 +14,7 @@ const Scanner scanner = _$scanner;
 void main(String[] args) {
   for (final input in args) {
     final match = scanner.match(input.codeUnits.iterator);
-    print(match != null ? '$input matched ${match.pattern}' : 'No match');
+    print(match != null ? '$input matched ${match.regex}' : 'No match');
   }
 }
 ```
@@ -34,8 +34,8 @@ ambiguity warnings
 ------------------
 
 Since the DFA knows all possible paths through the patterns, it is possible to detect ambiguities.
-When multiple patterns match the same input, the `Scanner` constructor throws an exception.
-To resolve this problem, specify which pattern should "win" by assigning it a higher _precedence_ value.
+When multiple patterns match the same input, the `Scanner` constructor warns you by throwing an exception.
+If you don't want to alter the patterns, specify which one should "win" by assigning it a higher _precedence_ value.
 
 Syntax
 ------
@@ -102,15 +102,15 @@ To find out which pattern matched an input, use the `pattern` property of the ma
 You can either compare with that value directly:
 
 ```dart
-const word = const Pattern('[A-Za-z]+');
-const number = const Pattern('[0-9]+');
+const word = const Regex('[A-Za-z]+');
+const number = const Regex('[0-9]+');
 
 @InjectScanner([word, number])
 const Scanner scanner = _$scanner;
 
 void main(String[] args) {
   final match = scanner.match(input.first);
-  switch(match.pattern) {
+  switch(match.regex) {
     case word:
       print('is word');
       break;
@@ -121,25 +121,25 @@ void main(String[] args) {
 }
 ```
 
-Or you can `extend` the `Pattern` class to attach custom properties or methods to the result:
+Or you can `extend` the `Regex` class to attach custom properties or methods to the result:
 
 ```dart
-class NamedPattern extends Pattern {
-  const NamedPattern(String regularExpression, this.name, {int precedence: 0})
-      : super(regularExpression, precedence: precedence);
+class NamedRegex extends Regex {
+  const NamedRegex(String pattern, this.name, {int precedence: 0})
+      : super(pattern, precedence: precedence);
 
   final String name;
 }
 
-const word = const NamedPattern('[A-Za-z]+', 'word');
-const number = const NamedPattern('[0-9]+', 'number');
+const word = const NamedRegex('[A-Za-z]+', 'word');
+const number = const NamedRegex('[0-9]+', 'number');
 
 @InjectScanner([word, number])
-const Scanner<NamedPattern> scanner = _$scanner;
+const Scanner<NamedRegex> scanner = _$scanner;
 
 void main(String[] args) {
   final match = scanner.match(input.first);
-  print('is ${match.pattern.name}');
+  print('is ${match.regex.name}');
 }
 ```
 
