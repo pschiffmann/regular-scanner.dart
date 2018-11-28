@@ -1,5 +1,7 @@
 library regular_scanner.scanner;
 
+import 'dart:math';
+
 import 'src/dfa.dart' show State, TableDrivenScanner;
 import 'src/parser.dart' show parse;
 import 'src/powerset_construction.dart' show constructDfa;
@@ -29,8 +31,8 @@ class Regex {
   String toString() => '/$regularExpression/';
 }
 
-/// Returned by [Scanner.match] to indicate which [regex] matched a given
-/// [input].
+/// Returned by [Scanner.matchAsPrefix] to indicate which [regex] matched a
+/// given [input].
 class ScannerMatch<T extends Regex> implements Match {
   ScannerMatch(this.pattern, this.regex, this.input, this.start, this.end)
       : assert(0 <= start && start <= end && end < input.length);
@@ -88,50 +90,18 @@ abstract class Scanner<T extends Regex> implements Pattern {
   final List<T> regexes;
 
   @override
-  Iterable<ScannerMatch> allMatches(String string, [int start = 0]) =>
-      throw UnimplementedError();
-
-  @override
-  ScannerMatch matchAsPrefix(String string, [int start = 0]) =>
-      throw UnimplementedError();
-
-  /// Matches [characters] against the [regexes]. Returns the longest possible
-  /// match, or `null` if no regex matched.
-  ///
-  /// The matching starts at `characters.current`. This means the iterator must
-  /// be advanced to a valid state before calling this function. After this
-  /// method returns, the position of [characters] will have been advanced at
-  /// least [ScannerMatch.length] positions, but possibly more.
-  ///
-  /// If [rewind] is `true`, [characters] will be moved back to point exactly
-  /// behind the last matched character. This way, the same iterator can be
-  /// immediately passed to this method again to match the remaining input.
-  /// This requires [characters] to be a [BidirectionalIterator].
-  ///
-  /// To match strings, obtain a compatible iterator from [String.codeUnits] or
-  /// [String.runes].
-  ScannerMatch<T> match(Iterator<int> characters, {bool rewind = false});
-
-  /// Parses the whole input by repeatedly calling [match], until [characters]
-  /// is exhausted.
-  ///
-  /// Calls [onError] if [characters] doesn't match at any point. [onError] is
-  /// expected to return a substitute [ScannerMatch] and advance [characters] by
-  /// at least one position. If [onError] is omitted and an error is
-  /// encountered, throws a [FormatException].
-  Iterable<ScannerMatch<T>> tokenize(BidirectionalIterator<int> characters,
-      {ScannerMatch<T> Function(BidirectionalIterator<int>) onError}) {
-    final result = <ScannerMatch<T>>[];
-    while (characters.current != null) {
-      final m = match(characters, rewind: true);
-      if (m != null) {
-        result.add(m);
-      } else if (onError != null) {
-        result.add(onError(characters));
+  Iterable<ScannerMatch<T>> allMatches(String string, [int start = 0]) sync* {
+    while (start < string.length) {
+      final match = matchAsPrefix(string, start);
+      if (match != null) {
+        yield match;
+        start += max(match.length, 1);
       } else {
-        throw FormatException("input didn't match any regex", characters);
+        start++;
       }
     }
-    return result;
   }
+
+  @override
+  ScannerMatch<T> matchAsPrefix(String string, [int start = 0]);
 }

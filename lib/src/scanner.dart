@@ -199,7 +199,7 @@ class TokenIterator implements Iterator<Regex> {
 
     final match =
         (insideCharacterSet ? characterSetScanner : defaultContextScanner)
-            .match(pattern.codeUnits.skip(position).iterator..moveNext());
+            .matchAsPrefix(pattern, position);
     if (match != null) {
       if (match.regex.convertToLiteral) {
         // Call `codePointToRune` and `extractCodePoint` first, because they can

@@ -1,4 +1,3 @@
-import 'package:charcode/ascii.dart';
 import 'package:regular_scanner/regular_scanner.dart';
 import 'package:test/test.dart';
 
@@ -6,7 +5,7 @@ void main() {
   group('TableDrivenScanner.match()', () {
     test('returns `null` if no regex matches', () {
       final scanner = Scanner(const [Regex('abc')]);
-      final match = scanner.match('xyz'.codeUnits.iterator..moveNext());
+      final match = scanner.matchAsPrefix('xyz');
       expect(match, isNull);
     });
 
@@ -14,11 +13,10 @@ void main() {
       const regex = Regex('a?');
       final scanner = Scanner([regex]);
 
-      final emptyInput = scanner.match(''.codeUnits.iterator..moveNext());
+      final emptyInput = scanner.matchAsPrefix('');
       expect(emptyInput.regex, regex);
 
-      final nonMatchingInput =
-          scanner.match('b'.codeUnits.iterator..moveNext());
+      final nonMatchingInput = scanner.matchAsPrefix('b');
       expect(nonMatchingInput.regex, regex);
     });
 
@@ -26,27 +24,8 @@ void main() {
       const short = Regex('a');
       const long = Regex('aa');
       final scanner = Scanner([short, long]);
-      final match = scanner.match('aaa'.codeUnits.iterator..moveNext());
+      final match = scanner.matchAsPrefix('aaa');
       expect(match.regex, long);
-    });
-
-    test('advances the iterator only while at least one regex matches', () {
-      final scanner = Scanner(const [Regex('abcde')]);
-      final it = 'abcxy'.codeUnits.iterator..moveNext();
-      final match = scanner.match(it);
-      expect(match, isNull);
-      expect(it.current, $x);
-    });
-
-    test('places the iterator behind the match if `rewind` is true', () {
-      const fours = Regex('(aaaa)+', precedence: 0);
-      const fives = Regex('(aaaaa)+', precedence: 1);
-      final scanner = Scanner([fours, fives]);
-      final it = RuneIterator('${"a" * 9}b')..moveNext();
-      final match = scanner.match(it, rewind: true);
-      expect(match.regex, fours);
-      expect(match.length, 8);
-      expect(it.rawIndex, 8);
     });
   });
 }

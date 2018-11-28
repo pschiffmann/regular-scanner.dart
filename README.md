@@ -13,7 +13,7 @@ const Scanner scanner = _$scanner;
 
 void main(String[] args) {
   for (final input in args) {
-    final match = scanner.match(input.codeUnits.iterator);
+    final match = scanner.matchAsPrefix(input);
     print(match != null ? '$input matched ${match.regex}' : 'No match');
   }
 }
@@ -109,7 +109,7 @@ const number = const Regex('[0-9]+');
 const Scanner scanner = _$scanner;
 
 void main(String[] args) {
-  final match = scanner.match(input.first);
+  final match = scanner.matchAsPrefix(input.first);
   switch(match.regex) {
     case word:
       print('is word');

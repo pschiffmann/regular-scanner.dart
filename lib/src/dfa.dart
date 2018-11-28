@@ -48,31 +48,26 @@ class TableDrivenScanner<T extends Regex> extends Scanner<T> {
   final List<State<T>> states;
 
   @override
-  ScannerMatch<T> match(Iterator<int> characters, {bool rewind = false}) {
+  ScannerMatch<T> matchAsPrefix(final String string, [final int start = 0]) {
+    RangeError.checkValidIndex(start, string, 'start');
+
     var state = states[State.startId];
+    var position = start;
     var result = state.accept == null
         ? null
-        : ScannerMatch<T>(this, state.accept, null, 0, 0);
-    var steps = 0;
-    while (characters.current != null) {
-      final nextId = state.successorFor(characters.current);
+        : ScannerMatch(this, state.accept, string, start, start);
+    while (position < string.length) {
+      final nextId = state.successorFor(string.codeUnitAt(position));
       if (nextId == State.errorId) {
         break;
       }
       state = states[nextId];
-      steps++;
+      position++;
       if (state.accept != null) {
-        result = ScannerMatch<T>(this, state.accept, null, 0, steps);
+        result = ScannerMatch(this, state.accept, string, start, position);
       }
-      characters.moveNext();
     }
 
-    if (rewind) {
-      final it = characters as BidirectionalIterator;
-      for (var i = steps - (result != null ? result.length : 0); i > 0; i--) {
-        it.movePrevious();
-      }
-    }
     return result;
   }
 }

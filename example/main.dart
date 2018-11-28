@@ -29,15 +29,9 @@ void main(List<String> args) {
 
   for (final input in args) {
     print('Matching $input:');
-    final it = input.runes.iterator..moveNext();
-    while (it.current != null) {
-      final start = it.rawIndex;
-      final match = scanner.match(it, rewind: true);
-      if (match == null) {
-        print('- Match failed at character ${it.current}');
-      } else if (match.regex != whitespace) {
-        print('- ${input.substring(start, start + match.length)} '
-            'matches regex ${match.regex.name}');
+    for (final match in scanner.allMatches(input)) {
+      if (match.regex != whitespace) {
+        print('- ${match.capture} is a ${match.regex.name} number');
       }
     }
   }
