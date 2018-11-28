@@ -85,26 +85,26 @@ const Scanner<TokenType> defaultContextScanner = _$defaultContextScanner;
 const Scanner<TokenType> characterSetScanner = _$characterSetScanner;
 
 /// Extracts the unicode rune that an escape sequence should match.
-typedef ValueExtractor = int Function(MatchResult m);
+typedef ValueExtractor = int Function(ScannerMatch m);
 
-int _extractIdentity(MatchResult m) {
+int _extractIdentity(ScannerMatch m) {
   assert(m.length == 1);
   return m.input.codeUnitAt(m.start);
 }
 
-int _extractAsciiCharacter(MatchResult m) {
+int _extractAsciiCharacter(ScannerMatch m) {
   assert(m.length == 2);
   assert(m.input.codeUnitAt(m.start) == $backslash);
   return m.input.codeUnitAt(m.start + 1);
 }
 
-int _extractConrolCharacter(MatchResult m) {
+int _extractConrolCharacter(ScannerMatch m) {
   assert(m.length == 2);
   assert(m.input.codeUnitAt(m.start) == $backslash);
   return controlCharacterEscapeTranslations[m.input.codeUnitAt(m.start + 1)];
 }
 
-int _extractUnicodeCodePoint(MatchResult m) {
+int _extractUnicodeCodePoint(ScannerMatch m) {
   assert(m.regex == _unicodeEscape);
 
   const prefixLength = r'\u{'.length;
