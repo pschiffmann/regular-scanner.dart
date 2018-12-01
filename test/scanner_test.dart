@@ -166,70 +166,72 @@ void main() {
                 Token(r'\S', characterSetAlias, $S)
               ]));
     });
-  });
 
-  group('in character set context', () {
-    test(
-        'recognizes simple characters as literals',
-        () => expectTokens([
-              Token('X', literal),
-              Token('Y', literal),
-              Token('=', literal),
-              Token('💯', literal)
-            ], inCharacterSetContext: true));
-    test(
-        'recognizes default context special characters as literals',
-        () => expectTokens([
-              Token('.', literal),
-              Token('+', literal),
-              Token('*', literal),
-              Token('?', literal),
-              Token('(', literal),
-              Token(')', literal),
-              Token('|', literal)
-            ], inCharacterSetContext: true));
+    group('in character set context', () {
+      test(
+          'recognizes simple characters as literals',
+          () => expectTokens([
+                Token('X', literal),
+                Token('Y', literal),
+                Token('=', literal),
+                Token('💯', literal)
+              ], inCharacterSetContext: true));
+      test(
+          'recognizes default context special characters as literals',
+          () => expectTokens([
+                Token('.', literal),
+                Token('+', literal),
+                Token('*', literal),
+                Token('?', literal),
+                Token('(', literal),
+                Token(')', literal),
+                Token('|', literal)
+              ], inCharacterSetContext: true));
 
-    test(
-        'recognizes special characters',
-        () => expectTokens([
-              Token('[', characterSetStart),
-              Token(']', characterSetEnd),
-              Token('^', negation),
-              Token('-', rangeSeparator)
-            ], inCharacterSetContext: true));
+      test(
+          'recognizes special characters',
+          () => expectTokens([
+                Token('[', characterSetStart),
+                Token(']', characterSetEnd),
+                Token('^', negation),
+                Token('-', rangeSeparator)
+              ], inCharacterSetContext: true));
 
-    test(
-        'recognizes escaped special characters as literals',
-        () => expectTokens([
-              Token(r'\[', literal, $lbracket),
-              Token(r'\]', literal, $rbracket),
-              Token(r'\^', literal, $caret),
-              Token(r'\-', literal, $minus)
-            ], inCharacterSetContext: true));
+      test(
+          'recognizes escaped special characters as literals',
+          () => expectTokens([
+                Token(r'\[', literal, $lbracket),
+                Token(r'\]', literal, $rbracket),
+                Token(r'\^', literal, $caret),
+                Token(r'\-', literal, $minus)
+              ], inCharacterSetContext: true));
 
-    test('recognizes escape sequences as literals',
-        () => expectTokens(commonEscapeSequences, inCharacterSetContext: true));
+      test(
+          'recognizes escape sequences as literals',
+          () =>
+              expectTokens(commonEscapeSequences, inCharacterSetContext: true));
 
-    test(
-        'throws on unrecognized escape sequences',
-        () => expectThrows([
-              r'\a',
-              r'\(',
-              r'\)',
-              r'\.',
-              r'\+',
-              r'\*',
-              r'\?',
-              r'\|',
-              r'\d',
-              r'\w',
-              r'\s',
-              r'\D',
-              r'\W',
-              r'\S',
-              r'\🙃',
-              r'\',
-            ], inCharacterSetContext: true));
+      test(
+          'throws on unrecognized escape sequences',
+          () => expectThrows([
+                r'\a',
+                r'\(',
+                r'\)',
+                r'\.',
+                r'\+',
+                r'\*',
+                r'\?',
+                r'\|',
+                r'\d',
+                r'\w',
+                r'\s',
+                r'\D',
+                r'\W',
+                r'\S',
+                r'\🙃',
+                r'\',
+              ], inCharacterSetContext: true));
+    });
   });
 
   group('codePointToRune', () {
