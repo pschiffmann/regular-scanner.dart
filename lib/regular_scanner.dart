@@ -35,7 +35,7 @@ class Regex {
 /// given [input].
 class ScannerMatch<T extends Regex> implements Match {
   ScannerMatch(this.pattern, this.regex, this.input, this.start, this.end)
-      : assert(0 <= start && start <= end && end < input.length);
+      : assert(0 <= start && start <= end && end <= input.length);
 
   @override
   final Scanner<T> pattern;
