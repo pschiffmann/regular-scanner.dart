@@ -1,34 +1,26 @@
-///
-/// This library shadows the [core.Pattern] class from `dart:core`, so you might
-/// want to import it with a prefix:
-///
-/// ```dart
-/// import 'package:regular_scanner/scanner.dart' as rs;
-/// ```
 library regular_scanner.scanner;
 
-import 'dart:core' hide Pattern;
-import 'dart:core' as core show Pattern;
+import 'dart:math';
 
 import 'src/dfa.dart' show State, TableDrivenScanner;
 import 'src/parser.dart' show parse;
 import 'src/powerset_construction.dart' show constructDfa;
 
 export 'src/dfa.dart' show State, Transition;
-export 'src/powerset_construction.dart' show ConflictingPatternException;
+export 'src/powerset_construction.dart' show ConflictingRegexException;
 
 /// This annotation marks a `const` variable as an injection point for a
-/// [Scanner], and specifies which [Pattern]s that scanner matches.
+/// [Scanner], and specifies which [Regex]s that scanner matches.
 class InjectScanner {
-  const InjectScanner(this.patterns);
+  const InjectScanner(this.regexes);
 
-  final List<Pattern> patterns;
+  final List<Regex> regexes;
 }
 
-/// Used as an argument to [InjectScanner] to specify the patterns that this
+/// Used as an argument to [InjectScanner] to specify the [Regex]es that this
 /// [Scanner] matches.
-class Pattern {
-  const Pattern(this.regularExpression, {this.precedence = 0})
+class Regex {
+  const Regex(this.regularExpression, {this.precedence = 0})
       : assert(precedence >= 0);
 
   final String regularExpression;
@@ -39,82 +31,77 @@ class Pattern {
   String toString() => '/$regularExpression/';
 }
 
-class MatchResult<T extends Pattern> {
-  MatchResult(this.pattern, int length)
-      : assert(length != null),
-        input = null,
-        start = -1,
-        end = -1;
+/// Returned by [Scanner.matchAsPrefix] to indicate which [regex] matched a
+/// given [input].
+class ScannerMatch<T extends Regex> implements Match {
+  ScannerMatch(this.pattern, this.regex, this.input, this.start, this.end)
+      : assert(0 <= start && start <= end && end <= input.length);
 
-  MatchResult.correct(this.pattern, this.input, this.start, this.end)
-      : assert(0 <= start && start <= end && end < input.length);
-
-  final T pattern;
+  @override
+  final Scanner<T> pattern;
+  @override
   final String input;
-  String get span => input.substring(start, end);
-
+  @override
   final int start;
+  @override
   final int end;
+
+  final T regex;
+
+  /// The span in [input] that was matched by [regex].
+  String get capture => input.substring(start, end);
+
+  /// Returns the length of [capture].
   int get length => end - start;
+
+  /// Returns [capture] if [group] is 0. Else, throws [RangeError].
+  @override
+  String group(int group) =>
+      group == 0 ? capture : (throw RangeError.value(group));
+  @override
+  String operator [](int group) => this.group(group);
+  @override
+  List<String> groups(List<int> groupIndices) =>
+      groupIndices.map(group).toList(growable: false);
+
+  /// Always returns 0 because [Scanner] doesn't support capturing groups.
+  @override
+  int get groupCount => 0;
 }
 
-abstract class Scanner<T extends Pattern> {
-  factory Scanner(Iterable<T> patterns) {
-    final patternsList = List<T>.unmodifiable(patterns);
-    assert(patternsList.length == patternsList.toSet().length,
-        'patterns contains duplicates');
-    return Scanner.withParseTable(patternsList,
-        constructDfa(patternsList.map(parse).toList(growable: false)));
+abstract class Scanner<T extends Regex> implements Pattern {
+  factory Scanner(Iterable<T> regexes) {
+    final regexesList = List<T>.unmodifiable(regexes);
+    if (regexesList.length != regexesList.toSet().length)
+      throw ArgumentError('regexes contains duplicates');
+    return Scanner.withParseTable(regexesList,
+        constructDfa(regexesList.map(parse).toList(growable: false)));
   }
 
   /// Internal constructor. Only visible so that generated code can instantiate
   /// this class as a `const` expression.
-  const factory Scanner.withParseTable(
-      List<T> patterns, List<State<T>> states) = TableDrivenScanner<T>;
+  const factory Scanner.withParseTable(List<T> regexes, List<State<T>> states) =
+      TableDrivenScanner<T>;
 
   /// This constructor only exists so this class can be subclassed.
-  const Scanner.setPatterns(this.patterns);
+  const Scanner.setRegexes(this.regexes);
 
-  /// The patterns that are matched by this scanner, in unchanged order.
-  final List<T> patterns;
+  /// The regexes that are matched by this scanner, in unchanged order.
+  final List<T> regexes;
 
-  /// Matches [characters] against the patterns in this scanner. Returns the
-  /// longest possible match, or `null` if no pattern matched.
-  ///
-  /// The matching starts at `characters.current`. This means the iterator must
-  /// be advanced to a valid state before calling this function. After this
-  /// method returns, the position of [characters] will have been advanced at
-  /// least [MatchResult.length] positions, but possibly more.
-  ///
-  /// If [rewind] is `true`, [characters] will be moved back to point exactly
-  /// behind the last matched character. This way, the same iterator can be
-  /// immediately passed to this method again to match the remaining input.
-  /// This requires [characters] to be a [BidirectionalIterator].
-  ///
-  /// To match strings, obtain a compatible iterator from [String.codeUnits] or
-  /// [String.runes].
-  MatchResult<T> match(Iterator<int> characters, {bool rewind = false});
-
-  /// Parses the whole input by repeatedly calling [match], until [characters]
-  /// is exhausted.
-  ///
-  /// Calls [onError] if [characters] doesn't match at any point. [onError] is
-  /// expected to return a substitute [MatchResult] and advance [characters] by
-  /// at least one position. If [onError] is omitted and an error is
-  /// encountered, throws a [FormatException].
-  Iterable<MatchResult<T>> tokenize(BidirectionalIterator<int> characters,
-      {MatchResult<T> Function(BidirectionalIterator<int>) onError}) {
-    final result = <MatchResult<T>>[];
-    while (characters.current != null) {
-      final m = match(characters, rewind: true);
-      if (m != null) {
-        result.add(m);
-      } else if (onError != null) {
-        result.add(onError(characters));
+  @override
+  Iterable<ScannerMatch<T>> allMatches(String string, [int start = 0]) sync* {
+    while (start < string.length) {
+      final match = matchAsPrefix(string, start);
+      if (match != null) {
+        yield match;
+        start += max(match.length, 1);
       } else {
-        throw FormatException("input didn't match any pattern", characters);
+        start++;
       }
     }
-    return result;
   }
+
+  @override
+  ScannerMatch<T> matchAsPrefix(String string, [int start = 0]);
 }

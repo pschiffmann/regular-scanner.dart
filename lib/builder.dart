@@ -1,7 +1,6 @@
 library regular_scanner.builder;
 
 import 'dart:async';
-import 'dart:core' hide Pattern;
 
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/constant/value.dart';
@@ -58,9 +57,8 @@ String resolveLocalName(ClassElement cls) {
       todo: "Import library `${cls.library}`, and don't hide this class");
 }
 
-/// This generator reads the [Pattern]s from an [InjectScanner] annotation and
-/// generates the Dart code required to instantiate a [Scanner] for these
-/// patterns.
+/// This generator reads the [Regex]es from an [InjectScanner] annotation and
+/// generates the Dart code required to instantiate a corresponding [Scanner].
 abstract class ScannerGenerator extends GeneratorForAnnotation<InjectScanner> {
   const ScannerGenerator();
 
@@ -70,12 +68,12 @@ abstract class ScannerGenerator extends GeneratorForAnnotation<InjectScanner> {
     final variable = validateAnnotatedElement(element);
 
     return runZoned(() {
-      final patterns =
+      final regexes =
           resolveInjectScannerArguments(variable, annotation.objectValue);
-      final patternType = resolvePatternType(variable);
+      final regexType = resolveRegexType(variable);
 
-      return generateScanner(Scanner<PatternWithInitializer>(patterns),
-          variable.name, patternType);
+      return generateScanner(
+          Scanner<RegexWithInitializer>(regexes), variable.name, regexType);
     }, zoneValues: {
       #regularScannerLibrary: annotation.objectValue.type.element.library,
       #hostLibrary: variable.library
@@ -87,10 +85,10 @@ abstract class ScannerGenerator extends GeneratorForAnnotation<InjectScanner> {
   ///
   /// [scanner] contains a scanner that was built from the [InjectScanner]
   /// annotation values. [scannerVariableName] contains the name of the
-  /// annotated variable. [patternType] contains the result of
-  /// [resolvePatternType].
-  String generateScanner(TableDrivenScanner<PatternWithInitializer> scanner,
-      String scannerVariableName, ClassElement patternType);
+  /// annotated variable. [regexType] contains the result of
+  /// [resolveRegexType].
+  String generateScanner(TableDrivenScanner<RegexWithInitializer> scanner,
+      String scannerVariableName, ClassElement regexType);
 }
 
 /// Ensures that the element annotated with [InjectScanner] is a valid target
@@ -124,14 +122,14 @@ TopLevelVariableElement validateAnnotatedElement(Element element) {
   return variable;
 }
 
-/// Extracts the initializer `const` expressions of the individual [Pattern]s
+/// Extracts the initializer `const` expressions of the individual [Regex]s
 /// in the [InjectScanner] annotation from the AST of [variable].
-List<PatternWithInitializer> resolveInjectScannerArguments(
+List<RegexWithInitializer> resolveInjectScannerArguments(
     TopLevelVariableElement variable, DartObject injectScanner) {
-  final patterns = injectScanner.getField('patterns')?.toListValue();
-  if (patterns == null || patterns.isEmpty) {
+  final regexes = injectScanner.getField('regexes')?.toListValue();
+  if (regexes == null || regexes.isEmpty) {
     throw InvalidGenerationSourceError(
-        'The @InjectScanner pattern list must not be empty',
+        'The @InjectScanner regex list must not be empty',
         element: variable);
   }
 
@@ -146,18 +144,18 @@ List<PatternWithInitializer> resolveInjectScannerArguments(
     final initializerList = annotation.arguments.arguments.first;
     if (initializerList is! ListLiteral) {
       throw InvalidGenerationSourceError(
-          'The patterns must be explicitly enumerated in the `@InjectScanner` '
+          'The regexes must be explicitly enumerated in the `@InjectScanner` '
           'annotation parameter',
           element: variable);
     }
     final initializers = (initializerList as ListLiteral).elements;
 
-    final result = <PatternWithInitializer>[];
+    final result = <RegexWithInitializer>[];
     for (var i = 0; i < initializers.length; i++) {
-      final pattern = ConstantReader(patterns[i]);
-      result.add(PatternWithInitializer(
-          pattern.read('regularExpression').stringValue,
-          pattern.read('precedence').intValue,
+      final regex = ConstantReader(regexes[i]);
+      result.add(RegexWithInitializer(
+          regex.read('regularExpression').stringValue,
+          regex.read('precedence').intValue,
           initializers[i].toSource()));
     }
     return result;
@@ -169,7 +167,7 @@ List<PatternWithInitializer> resolveInjectScannerArguments(
 
 /// Returns the generic type argument of the generated [Scanner], or `null` if
 /// the analyzed code doesn't specify a type.
-ClassElement resolvePatternType(TopLevelVariableElement variable) {
+ClassElement resolveRegexType(TopLevelVariableElement variable) {
   final variableType = variable.type;
   if (variableType == null) {
     return null;
@@ -182,15 +180,17 @@ ClassElement resolvePatternType(TopLevelVariableElement variable) {
   return (variableType as ParameterizedType).typeArguments.first.element;
 }
 
-/// An instance of this class represents a pattern from an [InjectScanner]
+/// An instance of this class represents a regex from an [InjectScanner]
 /// annotation. It contains the [regularExpression] and [precedence] that are
 /// needed for the scanner construction algorithm, and the information how to
 /// reconstruct the initial annotation argument.
-class PatternWithInitializer extends Pattern {
-  PatternWithInitializer(
+class RegexWithInitializer extends Regex {
+  RegexWithInitializer(
       String regularExpression, int precedence, this.initializerExpression)
       : super(regularExpression, precedence: precedence);
 
+  /// The exact string that is used in the parsed source code. This is either a
+  /// constant constructor invocation, or a variable reference.
   final String initializerExpression;
 }
 
@@ -199,8 +199,8 @@ class TableDrivenScannerGenerator extends ScannerGenerator {
   const TableDrivenScannerGenerator();
 
   @override
-  String generateScanner(TableDrivenScanner<PatternWithInitializer> scanner,
-      String scannerVariableName, ClassElement patternType) {
+  String generateScanner(TableDrivenScanner<RegexWithInitializer> scanner,
+      String scannerVariableName, ClassElement regexType) {
     final stateTypeName = resolveLocalName(
             regularScannerLibrary.exportNamespace.get('State')),
         transitionTypeName = resolveLocalName(
@@ -213,8 +213,8 @@ class TableDrivenScannerGenerator extends ScannerGenerator {
       ..write(' = ')
       ..write(resolveLocalName(
           regularScannerLibrary.exportNamespace.get('Scanner')));
-    if (patternType != null) {
-      result..write('<')..write(resolveLocalName(patternType))..write('>');
+    if (regexType != null) {
+      result..write('<')..write(resolveLocalName(regexType))..write('>');
     }
     result.writeln('.withParseTable([], [');
     for (final state in scanner.states) {

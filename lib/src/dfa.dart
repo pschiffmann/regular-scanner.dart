@@ -1,13 +1,11 @@
-import 'dart:core' hide Pattern;
-
 import '../regular_scanner.dart';
 import 'ranges.dart';
 
-class State<T extends Pattern> {
+class State<T extends Regex> {
   const State(this.transitions,
       {this.defaultTransition = State.errorId, this.accept});
 
-  /// The state in `Scanner.states` at index `0` is the start state.
+  /// The state in [TableDrivenScanner.states] at index `0` is the start state.
   static const int startId = 0;
 
   /// [successorFor] returns this value to reject the next character and stop
@@ -20,6 +18,7 @@ class State<T extends Pattern> {
   /// [transitions]. This value is never `null` and defaults to [State.errorId].
   final int defaultTransition;
 
+  /// If this state is reached, the input matches [accept].
   final T accept;
 
   int successorFor(int guard) {
@@ -32,6 +31,7 @@ class Transition extends Range {
   const Transition(int min, int max, this.successor) : super(min, max);
   const Transition.single(int value, this.successor) : super.single(value);
 
+  /// The id of the successor state.
   final int successor;
 
   @override
@@ -41,36 +41,33 @@ class Transition extends Range {
       '-> $successor';
 }
 
-class TableDrivenScanner<T extends Pattern> extends Scanner<T> {
-  const TableDrivenScanner(List<T> patterns, this.states)
-      : super.setPatterns(patterns);
+class TableDrivenScanner<T extends Regex> extends Scanner<T> {
+  const TableDrivenScanner(List<T> regexes, this.states)
+      : super.setRegexes(regexes);
 
   final List<State<T>> states;
 
   @override
-  MatchResult<T> match(Iterator<int> characters, {bool rewind = false}) {
+  ScannerMatch<T> matchAsPrefix(final String string, [final int start = 0]) {
+    RangeError.checkValidIndex(start, string, 'start');
+
     var state = states[State.startId];
-    var result = state.accept == null ? null : MatchResult<T>(state.accept, 0);
-    var steps = 0;
-    while (characters.current != null) {
-      final nextId = state.successorFor(characters.current);
+    var position = start;
+    var result = state.accept == null
+        ? null
+        : ScannerMatch(this, state.accept, string, start, start);
+    while (position < string.length) {
+      final nextId = state.successorFor(string.codeUnitAt(position));
       if (nextId == State.errorId) {
         break;
       }
       state = states[nextId];
-      steps++;
+      position++;
       if (state.accept != null) {
-        result = MatchResult<T>(state.accept, steps);
+        result = ScannerMatch(this, state.accept, string, start, position);
       }
-      characters.moveNext();
     }
 
-    if (rewind) {
-      final it = characters as BidirectionalIterator;
-      for (var i = steps - (result != null ? result.length : 0); i > 0; i--) {
-        it.movePrevious();
-      }
-    }
     return result;
   }
 }
