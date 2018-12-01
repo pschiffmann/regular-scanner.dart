@@ -17,8 +17,9 @@ final commonEscapeSequences = [
 
 /// Instantiates a [TokenIterator] with all [Token.lexeme]s of [tokens] as input
 /// and tests that that the iterator recognizes the expected types and runes.
-void expectTokens(List<Token> tokens) {
-  final it = TokenIterator(tokens.map((t) => t.lexeme).join(''));
+void expectTokens(List<Token> tokens, {bool inCharacterSetContext: false}) {
+  final it = TokenIterator(tokens.map((t) => t.lexeme).join(''))
+    ..insideCharacterSet = inCharacterSetContext;
   expect(it.current, isNull);
   expect(it.index, isNull);
 
@@ -147,6 +148,49 @@ void main() {
                 Token(r'\S', characterSetAlias, $S)
               ]));
     });
+  });
+
+  group('in character set context', () {
+    test(
+        'recognizes simple characters as literals',
+        () => expectTokens([
+              Token('X', literal),
+              Token('Y', literal),
+              Token('=', literal),
+              Token('💯', literal)
+            ], inCharacterSetContext: true));
+    test(
+        'recognizes default context special characters as literals',
+        () => expectTokens([
+              Token('.', literal),
+              Token('+', literal),
+              Token('*', literal),
+              Token('?', literal),
+              Token('(', literal),
+              Token(')', literal),
+              Token('|', literal)
+            ], inCharacterSetContext: true));
+
+    test(
+        'recognizes special characters',
+        () => expectTokens([
+              Token('[', characterSetStart),
+              Token(']', characterSetEnd),
+              Token('^', negation),
+              Token('-', rangeSeparator)
+            ], inCharacterSetContext: true));
+
+    test(
+        'recognizes escaped special characters as literals',
+        () => expectTokens([
+              Token(r'\[', literal, $lbracket),
+              Token(r'\]', literal, $rbracket),
+              Token(r'\^', literal, $caret),
+              Token(r'\-', literal, $minus)
+            ], inCharacterSetContext: true));
+
+    test('recognizes escape sequences as literals',
+        () => expectTokens(commonEscapeSequences, inCharacterSetContext: true));
   });
 
   group('codePointToRune', () {
