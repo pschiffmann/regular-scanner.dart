@@ -37,6 +37,16 @@ void expectTokens(List<Token> tokens, {bool inCharacterSetContext: false}) {
   expect(it.index, isNull);
 }
 
+/// Checks that [TokenIterator.moveNext] throws when parsing every element in
+/// [invalidInputs].
+void expectThrows(List<String> invalidInputs,
+    {bool inCharacterSetContext: false}) {
+  for (final input in invalidInputs) {
+    final it = TokenIterator(input)..insideCharacterSet = inCharacterSetContext;
+    expect(it.moveNext, throwsFormatException);
+  }
+}
+
 /// Describes as which [type] and [rune] the [lexeme] should be recognized by
 /// [TokenIterator.moveNext].
 class Token {
@@ -135,7 +145,15 @@ void main() {
       test('recognizes escape sequences as literals',
           () => expectTokens(commonEscapeSequences));
 
-      test('throws on unrecognized escape sequences', () => expectTokens([]));
+      test(
+          'throws on unrecognized escape sequences',
+          () => expectThrows([
+                r'\a',
+                r'\-',
+                r'\^',
+                r'\🙃',
+                r'\',
+              ]));
 
       test(
           'recognizes character set aliases',
@@ -191,6 +209,27 @@ void main() {
 
     test('recognizes escape sequences as literals',
         () => expectTokens(commonEscapeSequences, inCharacterSetContext: true));
+
+    test(
+        'throws on unrecognized escape sequences',
+        () => expectThrows([
+              r'\a',
+              r'\(',
+              r'\)',
+              r'\.',
+              r'\+',
+              r'\*',
+              r'\?',
+              r'\|',
+              r'\d',
+              r'\w',
+              r'\s',
+              r'\D',
+              r'\W',
+              r'\S',
+              r'\🙃',
+              r'\',
+            ], inCharacterSetContext: true));
   });
 
   group('codePointToRune', () {
