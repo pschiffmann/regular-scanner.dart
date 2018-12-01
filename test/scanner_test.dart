@@ -43,19 +43,21 @@ void main() {
     test('becomes exhausted when throwing an exception', () {
       // A list of (explanation/invalid input string/exception type) triples.
       const invalidInputs = [
-        ['invalid escape sequence', r'\~', TypeMatcher<FormatException>()],
+        [
+          'invalid escape sequence',
+          r'\~',
+          TypeMatcher<FormatException>(),
+        ],
         [
           'escape character with no following character',
           r'\',
-          TypeMatcher<FormatException>()
+          TypeMatcher<FormatException>(),
         ],
-        /* TODO: This test case should work once we generate a new version of
-                 [defaultContextScanner].
         [
           'outside unicode code point range',
           r'\u{FFFFFF}',
-          TypeMatcher<RangeError>()
-        ]*/
+          TypeMatcher<RangeError>(),
+        ]
       ];
 
       for (final input in invalidInputs) {
@@ -79,15 +81,38 @@ void main() {
               ]));
 
       test(
+          'recognizes character set special characters as literals',
+          () => expectTokens([
+                Token('^', literal),
+                Token('-', literal),
+              ]));
+
+      test(
           'recognizes special characters',
           () => expectTokens([
+                Token('[', characterSetStart),
+                Token(']', characterSetEnd),
+                Token('.', dot),
+                Token('+', repetition),
+                Token('*', repetition),
+                Token('?', repetition),
                 Token('(', groupStart),
+                Token(')', groupEnd),
+                Token('|', choice)
               ]));
 
       test(
           'recognizes escaped special characters as literals',
           () => expectTokens([
+                Token(r'\[', literal, $lbracket),
+                Token(r'\]', literal, $rbracket),
+                Token(r'\.', literal, $dot),
+                Token(r'\+', literal, $plus),
+                Token(r'\*', literal, $asterisk),
+                Token(r'\?', literal, $question),
                 Token(r'\(', literal, $lparen),
+                Token(r'\)', literal, $rparen),
+                Token(r'\|', literal, $pipe)
               ]));
 
       test('recognizes escape sequences as literals', () => expectTokens([]));

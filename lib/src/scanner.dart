@@ -210,8 +210,8 @@ class TokenIterator implements Iterator<Regex> {
           // If [TokenType.convertToLiteral] is false, the pattern matches
           // either a single ASCII character, or `\` followed by a single ASCII
           // character.
-          assert(pattern.length == 1 ||
-              pattern.length == 2 &&
+          assert(match.length == 1 ||
+              match.length == 2 &&
                   pattern.codeUnitAt(match.start) == $backslash);
           _current = match.regex;
           _rune = pattern.codeUnitAt(match.end - 1);

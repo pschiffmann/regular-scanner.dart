@@ -59,14 +59,12 @@ const _$defaultContextScanner = Scanner<TokenType>.withParseTable([], [
     Transition(97, 102, 15),
   ], defaultTransition: -1),
   State([
+    Transition(48, 57, 15),
+    Transition(65, 70, 15),
+    Transition(97, 102, 15),
     Transition(125, 125, 16),
   ], defaultTransition: -1),
-  State([
-    Transition(125, 125, 17),
-  ], defaultTransition: -1),
-  State([
-    Transition(125, 125, 17),
-  ], defaultTransition: -1, accept: _unicodeEscape),
+  State([], defaultTransition: -1, accept: _unicodeEscape),
 ]);
 
 const _$characterSetScanner = Scanner<TokenType>.withParseTable([], [
@@ -106,12 +104,10 @@ const _$characterSetScanner = Scanner<TokenType>.withParseTable([], [
     Transition(97, 102, 11),
   ], defaultTransition: -1),
   State([
+    Transition(48, 57, 11),
+    Transition(65, 70, 11),
+    Transition(97, 102, 11),
     Transition(125, 125, 12),
   ], defaultTransition: -1),
-  State([
-    Transition(125, 125, 13),
-  ], defaultTransition: -1),
-  State([
-    Transition(125, 125, 13),
-  ], defaultTransition: -1, accept: _unicodeEscape),
+  State([], defaultTransition: -1, accept: _unicodeEscape),
 ]);
