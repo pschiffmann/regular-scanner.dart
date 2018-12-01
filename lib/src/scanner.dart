@@ -21,7 +21,7 @@ const controlCharacterEscapeTranslations = {
 const _controlCharacterEscape =
     TokenType(r'\\[trnvf0]', _extractConrolCharacter);
 const _unicodeEscape =
-    TokenType(r'\\[Uu]{[0-9A-Fa-f]}+}', _extractUnicodeCodePoint);
+    TokenType(r'\\[Uu]{[0-9A-Fa-f]+}', _extractUnicodeCodePoint);
 const _sharedContextEscapes = TokenType(r'\\[\[\]\\]', _extractAsciiCharacter);
 const characterSetStart = TokenType(r'\[');
 const characterSetEnd = TokenType(r'\]');
@@ -112,12 +112,8 @@ int _extractUnicodeCodePoint(ScannerMatch m) {
 
   final hexString =
       m.input.substring(m.start + prefixLength, m.end - suffixLength);
-  if (hexString.length > 5) {
-    throw FormatException(
-        'Unicode escape sequences must not be longer than 5 hex digits',
-        m.input,
-        m.start);
-  }
+  // Return the integer unchecked. The range check will be done by
+  // [codePointToRune].
   return int.parse(hexString, radix: 16);
 }
 
@@ -163,8 +159,6 @@ class TokenIterator implements Iterator<Regex> {
 
   /// Returns `true` if the current [literal] token is a surrogate pair, and
   /// must be encoded as two subsequent states.
-  ///
-  /// Throws an [AssertionError] if [current] is not [literal].
   bool get literalIsSingleCodeUnit => _rune is int;
 
   int get codeUnit => _rune;
@@ -184,53 +178,67 @@ class TokenIterator implements Iterator<Regex> {
   /// parsing functions.
   bool insideCharacterSet = false;
 
-  /// Reads the next character from [pattern] and updates [current]. If there is
-  /// no next character and [onRegexEnd] is not `null`, throws a
-  /// [FormatException] with [onRegexEnd] as message.
+  /// Reads the next character from [pattern] and updates [current].
   ///
-  /// Throws a [RangeError] if an unpaired surrogate is found.
+  /// If there is no next character and [onRegexEnd] is not `null`, throws a
+  /// [FormatException] with [onRegexEnd] as message. Throws a [RangeError] if
+  /// an unpaired surrogate is found. In either case, the iterator is
+  /// immediately placed behind the last element ([current] is `null` and calls
+  /// to [moveNext] return `false`).
   @override
   bool moveNext({String onRegexEnd}) {
-    final position = _nextPosition;
-    if (position >= pattern.length) {
+    _position = _nextPosition;
+    if (_position >= pattern.length) {
+      _current = _rune = null;
       if (onRegexEnd != null) error(onRegexEnd, pattern.length - 1);
       return false;
     }
 
-    final match =
-        (insideCharacterSet ? characterSetScanner : defaultContextScanner)
-            .matchAsPrefix(pattern, position);
-    if (match != null) {
-      if (match.regex.convertToLiteral) {
-        // Call `codePointToRune` and `extractCodePoint` first, because they can
-        // throw exceptions and would leave this object in an undefined state.
-        _rune = codePointToRune(match.regex.extractCodePoint(match));
-        _current = literal;
+    try {
+      final match =
+          (insideCharacterSet ? characterSetScanner : defaultContextScanner)
+              .matchAsPrefix(pattern, _position);
+
+      if (match != null) {
+        if (match.regex.convertToLiteral) {
+          // Call `codePointToRune` and `extractCodePoint` first, because they
+          // can throw exceptions and would leave this object in an undefined
+          // state.
+          _rune = codePointToRune(match.regex.extractCodePoint(match));
+          _current = literal;
+        } else {
+          // If [TokenType.convertToLiteral] is false, the pattern matches
+          // either a single ASCII character, or `\` followed by a single ASCII
+          // character.
+          assert(pattern.length == 1 ||
+              pattern.length == 2 &&
+                  pattern.codeUnitAt(match.start) == $backslash);
+          _current = match.regex;
+          _rune = pattern.codeUnitAt(match.end - 1);
+        }
+        _nextPosition = match.end;
+      } else if (pattern.codeUnitAt(_position) == $backslash) {
+        error('Unrecognized escape sequence');
       } else {
-        // If [TokenType.convertToLiteral] is false, the pattern matches either
-        // a single ASCII character, or `\` followed by a single ASCII
-        // character.
-        assert(pattern.length == 1 ||
-            pattern.length == 2 &&
-                pattern.codeUnitAt(match.start) == $backslash);
-        _current = match.regex;
-        _rune = pattern.codeUnitAt(match.end - 1);
+        // The current character is a literal. Use [RuneIterator] to detect
+        // surrogate pairs.
+        final runes = RuneIterator.at(pattern, _position)..moveNext();
+        _current = literal;
+        _rune = runes.currentSize == 1
+            ? pattern.codeUnitAt(_position)
+            : [
+                pattern.codeUnitAt(_position),
+                pattern.codeUnitAt(_position + 1)
+              ];
+        _nextPosition += runes.currentSize;
       }
-      _nextPosition = match.end;
-    } else if (pattern.codeUnitAt(position) == $backslash) {
-      error('Unrecognized escape sequence');
-    } else {
-      // The current character is a literal. Use [RuneIterator] to detect
-      // surrogate pairs.
-      final runes = RuneIterator.at(pattern, position)..moveNext();
-      _current = literal;
-      _rune = runes.currentSize == 1
-          ? pattern.codeUnitAt(position)
-          : [pattern.codeUnitAt(position), pattern.codeUnitAt(position + 1)];
-      _nextPosition += runes.currentSize;
+      _position = _position;
+      return true;
+    } catch (_) {
+      _position = _nextPosition = pattern.length;
+      _current = _rune = null;
+      rethrow;
     }
-    _position = position;
-    return true;
   }
 
   /// Convenience method to throw a [FormatException] with [message] and
