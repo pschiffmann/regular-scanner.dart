@@ -233,10 +233,20 @@ void main() {
   });
 
   group('codePointToRune', () {
-    test('returns BMP code points unchanged', () {});
+    test('returns BMP code points unchanged', () {
+      expect(codePointToRune(0x41), 0x41);
+      expect(codePointToRune(0xD7FF), 0xD7FF);
+      expect(codePointToRune(0xFFFF), 0xFFFF);
+    });
 
-    test('splits non-BMP code points into surrogate pairs', () {});
+    test('splits non-BMP code points into surrogate pairs', () {
+      expect(codePointToRune(0x1D11E), [0xD834, 0xDD1E]);
+    });
 
-    test('rejects non-code point numbers', () {});
+    test('rejects non-code point numbers', () {
+      expect(() => codePointToRune(-1), throwsRangeError);
+      expect(() => codePointToRune(0x110000), throwsRangeError);
+      expect(() => codePointToRune(0xD800), throwsRangeError);
+    });
   });
 }

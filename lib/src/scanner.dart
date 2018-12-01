@@ -2,6 +2,7 @@ import 'package:charcode/ascii.dart';
 import 'package:meta/meta.dart' show alwaysThrows;
 
 import '../regular_scanner.dart';
+import 'ranges.dart';
 
 part 'scanner.g.dart';
 
@@ -253,8 +254,13 @@ class TokenIterator implements Iterator<Regex> {
 ///
 /// Algorithm copied from: https://www.unicode.org/faq/utf_bom.html#utf16-4
 dynamic /* int|List<int> */ codePointToRune(int codePoint) {
-  RangeError.checkValueInInterval(
-      codePoint, 0, 0x10FFFF, 'codePoint', 'Not a valid Unicode code point');
+  const unicodeRange = Range(0, 0x10FFFF);
+  const surrogateRange = Range(0xD800, 0xDFFF);
+  if (!unicodeRange.contains(codePoint) || surrogateRange.contains(codePoint)) {
+    throw RangeError.value(
+        codePoint, 'codePoint', 'Not a valid Unicode code point');
+  }
+
   if (codePoint <= 0xFFFF) {
     return codePoint;
   }
