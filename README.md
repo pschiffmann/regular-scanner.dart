@@ -53,9 +53,10 @@ If you need to match a literal `\`, precede it with `\`, like so: `\\`.
 These escape sequences are recognized in both contexts.
 
  * `\t`, `\r`, `\n`, `\v`, `\f`, `\0` match the ASCII control characters tab, carriage return, linefeed, vertical tab, form-feed and NUL, respectively.
- * `\u{hhhh}` or `\u{hhhhh}` match the character with the Unicode value U+`hhhh` or U+`hhhhh` (hexadecimal digits).
+ * `\u{hhhhhh}` matches the Unicode code point U+`hhhhhh` (hexadecimal digits).
+   _Omitting leading zeros is allowed._
 
-_If an unrecognized escape sequence is encountered, an exception is thrown._
+_A `FormatException` is thrown on unrecognized escape sequences, and a `RangeError` on invalid Unicode code points._
 
 ### default context
 
