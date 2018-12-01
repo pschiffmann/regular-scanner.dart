@@ -113,7 +113,7 @@ Expression parseUnknown(TokenIterator context,
       case characterSetEnd:
         context.error('Unbalanced `]`');
         break;
-      case characterSetAliases:
+      case characterSetAlias:
         throw UnimplementedError(
             'Currently not supported. This will be implemented as part of '
             'https://github.com/pschiffmann/regular-scanner.dart/issues/5');

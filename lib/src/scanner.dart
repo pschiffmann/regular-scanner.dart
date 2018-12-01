@@ -37,7 +37,7 @@ const repetition = TokenType(r'[+*?]');
 const groupStart = TokenType(r'\(');
 const groupEnd = TokenType(r'\)');
 const choice = TokenType(r'\|');
-const characterSetAliases = TokenType(r'\\[dwsDWS]', _extractAsciiCharacter);
+const characterSetAlias = TokenType(r'\\[dwsDWS]');
 
 //
 // character set patterns
@@ -68,7 +68,7 @@ const literal = TokenType('.');
   groupStart,
   groupEnd,
   choice,
-  characterSetAliases
+  characterSetAlias
 ])
 const Scanner<TokenType> defaultContextScanner = _$defaultContextScanner;
 

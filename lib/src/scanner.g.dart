@@ -48,7 +48,7 @@ const _$defaultContextScanner = Scanner<TokenType>.withParseTable([], [
   State([], defaultTransition: -1, accept: choice),
   State([], defaultTransition: -1, accept: _defaultContextEscapes),
   State([], defaultTransition: -1, accept: _controlCharacterEscape),
-  State([], defaultTransition: -1, accept: characterSetAliases),
+  State([], defaultTransition: -1, accept: characterSetAlias),
   State([
     Transition(123, 123, 14),
   ], defaultTransition: -1),

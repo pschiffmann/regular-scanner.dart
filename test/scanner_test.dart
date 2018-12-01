@@ -2,6 +2,21 @@ import 'package:charcode/ascii.dart';
 import 'package:regular_scanner/src/scanner.dart';
 import 'package:test/test.dart';
 
+final commonEscapeSequences = [
+  Token(r'\\', literal, $backslash),
+  Token(r'\t', literal, $tab),
+  Token(r'\r', literal, $cr),
+  Token(r'\n', literal, $lf),
+  Token(r'\v', literal, $vt),
+  Token(r'\f', literal, $ff),
+  Token(r'\0', literal, $nul),
+  Token(r'\u{41}', literal, $A),
+  Token(r'\U{41}', literal, $A),
+  Token(r'\u{1F600}', literal, '😀'.codeUnits)
+];
+
+/// Instantiates a [TokenIterator] with all [Token.lexeme]s of [tokens] as input
+/// and tests that that the iterator recognizes the expected types and runes.
 void expectTokens(List<Token> tokens) {
   final it = TokenIterator(tokens.map((t) => t.lexeme).join(''));
   expect(it.current, isNull);
@@ -21,6 +36,8 @@ void expectTokens(List<Token> tokens) {
   expect(it.index, isNull);
 }
 
+/// Describes as which [type] and [rune] the [lexeme] should be recognized by
+/// [TokenIterator.moveNext].
 class Token {
   Token(this.lexeme, this.type, [dynamic rune])
       : rune = rune ??
@@ -29,7 +46,6 @@ class Token {
   final String lexeme;
   final TokenType type;
   final dynamic /* int|List<int> */ rune;
-  bool get literalIsSingleCodeUnit => rune is int;
 }
 
 void main() {
@@ -115,11 +131,21 @@ void main() {
                 Token(r'\|', literal, $pipe)
               ]));
 
-      test('recognizes escape sequences as literals', () => expectTokens([]));
+      test('recognizes escape sequences as literals',
+          () => expectTokens(commonEscapeSequences));
 
       test('throws on unrecognized escape sequences', () => expectTokens([]));
 
-      test('recognizes character set aliases', () => expectTokens([]));
+      test(
+          'recognizes character set aliases',
+          () => expectTokens([
+                Token(r'\d', characterSetAlias, $d),
+                Token(r'\w', characterSetAlias, $w),
+                Token(r'\s', characterSetAlias, $s),
+                Token(r'\D', characterSetAlias, $D),
+                Token(r'\W', characterSetAlias, $W),
+                Token(r'\S', characterSetAlias, $S)
+              ]));
     });
   });
 
