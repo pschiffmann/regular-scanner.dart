@@ -1,0 +1,10 @@
+name: regular_scanner_benchmark
+description: A starting point for Dart libraries or applications.
+environment:
+  sdk: '>=2.0.0 <3.0.0'
+dependencies:
+  front_end: ^0.1.6
+  glob: ^1.1.0
+  package_config: ^1.0.0
+  regular_scanner:
+    path: '../regular_scanner'
