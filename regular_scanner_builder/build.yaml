@@ -1,6 +1,6 @@
 builders:
-  scanner_builder:
-    import: "package:regular_scanner/builder.dart"
+  regular_scanner_builder:
+    import: "package:regular_scanner_builder/builder.dart"
     builder_factories: ["scannerBuilder"]
     build_extensions: {".dart": [".g.dart"]}
     auto_apply: root_package

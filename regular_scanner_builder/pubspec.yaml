@@ -1,0 +1,19 @@
+name: regular_scanner_builder
+description: A starting point for Dart libraries or applications.
+# version: 1.0.0
+homepage: https://github.com/pschiffmann/regular-scanner.dart/regular_scanner_builder
+author: Philipp Schiffmann <philippschiffmann93@gmail.com>
+
+environment:
+  sdk: '>=2.0.0 <3.0.0'
+dependencies:
+  analyzer: any
+  build: any
+  source_gen: ^0.9.0
+  # Not imported in code; This dependency restricts consumers of this package to
+  # a version of `build` that still uses the same `build.yaml` format.
+  build_config: ^0.3.0
+  regular_scanner:
+    path: ../regular_scanner
+dev_dependencies:
+  test: ^1.0.0
