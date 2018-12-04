@@ -6,7 +6,7 @@ part of 'scanner.dart';
 // TableDrivenScannerGenerator
 // **************************************************************************
 
-const _$defaultContextScanner = Scanner<TokenType>.withParseTable([], [
+const _$defaultContextScanner = TableDrivenScanner<TokenType>([], [
   State([
     Transition(40, 40, 1),
     Transition(41, 41, 2),
@@ -67,7 +67,7 @@ const _$defaultContextScanner = Scanner<TokenType>.withParseTable([], [
   State([], defaultTransition: -1, accept: _unicodeEscape),
 ]);
 
-const _$characterSetScanner = Scanner<TokenType>.withParseTable([], [
+const _$characterSetScanner = TableDrivenScanner<TokenType>([], [
   State([
     Transition(45, 45, 1),
     Transition(91, 91, 2),

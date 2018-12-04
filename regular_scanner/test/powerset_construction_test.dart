@@ -1,7 +1,7 @@
 import 'dart:collection';
 
 import 'package:charcode/ascii.dart';
-import 'package:regular_scanner/regular_scanner.dart' hide State;
+import 'package:regular_scanner/regular_scanner.dart';
 import 'package:regular_scanner/src/ast.dart' as nfa show State;
 import 'package:regular_scanner/src/dfa.dart' as dfa;
 import 'package:regular_scanner/src/parser.dart';

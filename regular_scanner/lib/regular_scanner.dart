@@ -1,24 +1,13 @@
-library regular_scanner.scanner;
+library regular_scanner;
 
 import 'dart:math';
 
-import 'src/dfa.dart' show State, TableDrivenScanner;
+import 'src/dfa.dart' show TableDrivenScanner;
 import 'src/parser.dart' show parse;
 import 'src/powerset_construction.dart' show constructDfa;
 
-export 'src/dfa.dart' show State, Transition;
 export 'src/powerset_construction.dart' show ConflictingRegexException;
 
-/// This annotation marks a `const` variable as an injection point for a
-/// [Scanner], and specifies which [Regex]s that scanner matches.
-class InjectScanner {
-  const InjectScanner(this.regexes);
-
-  final List<Regex> regexes;
-}
-
-/// Used as an argument to [InjectScanner] to specify the [Regex]es that this
-/// [Scanner] matches.
 class Regex {
   const Regex(this.regularExpression, {this.precedence = 0})
       : assert(precedence >= 0);
@@ -70,24 +59,20 @@ class ScannerMatch<T extends Regex> implements Match {
 }
 
 abstract class Scanner<T extends Regex> implements Pattern {
-  factory Scanner(Iterable<T> regexes) {
+  /// Empty constructor allows extending this class, which can be used to
+  /// inherit [allMatches].
+  const Scanner();
+
+  factory Scanner.deterministic(Iterable<T> regexes) {
     final regexesList = List<T>.unmodifiable(regexes);
     if (regexesList.length != regexesList.toSet().length)
       throw ArgumentError('regexes contains duplicates');
-    return Scanner.withParseTable(regexesList,
+    return TableDrivenScanner(regexesList,
         constructDfa(regexesList.map(parse).toList(growable: false)));
   }
 
-  /// Internal constructor. Only visible so that generated code can instantiate
-  /// this class as a `const` expression.
-  const factory Scanner.withParseTable(List<T> regexes, List<State<T>> states) =
-      TableDrivenScanner<T>;
-
-  /// This constructor only exists so this class can be subclassed.
-  const Scanner.setRegexes(this.regexes);
-
-  /// The regexes that are matched by this scanner, in unchanged order.
-  final List<T> regexes;
+  /// The regexes that are matched by this scanner.
+  List<T> get regexes;
 
   @override
   Iterable<ScannerMatch<T>> allMatches(String string, [int start = 0]) sync* {

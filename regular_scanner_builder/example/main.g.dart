@@ -6,7 +6,7 @@ part of 'main.dart';
 // TableDrivenScannerGenerator
 // **************************************************************************
 
-const _$scanner = Scanner<NamedRegex>.withParseTable([], [
+const _$scanner = TableDrivenScanner<NamedRegex>([], [
   State([
     Transition(9, 10, 1),
     Transition(13, 13, 1),

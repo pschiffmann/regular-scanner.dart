@@ -4,14 +4,14 @@ import 'package:test/test.dart';
 void main() {
   group('TableDrivenScanner.match()', () {
     test('returns `null` if no regex matches', () {
-      final scanner = Scanner(const [Regex('abc')]);
+      final scanner = Scanner.deterministic(const [Regex('abc')]);
       final match = scanner.matchAsPrefix('xyz');
       expect(match, isNull);
     });
 
     test('matches empty regexes', () {
       const regex = Regex('a?');
-      final scanner = Scanner([regex]);
+      final scanner = Scanner.deterministic([regex]);
 
       final emptyInput = scanner.matchAsPrefix('');
       expect(emptyInput.regex, regex);
@@ -23,7 +23,7 @@ void main() {
     test('is greedy (returns the longest match)', () {
       const short = Regex('a');
       const long = Regex('aa');
-      final scanner = Scanner([short, long]);
+      final scanner = Scanner.deterministic([short, long]);
       final match = scanner.matchAsPrefix('aaa');
       expect(match.regex, long);
     });

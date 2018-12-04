@@ -1,4 +1,4 @@
-import 'package:regular_scanner/regular_scanner.dart';
+import 'package:regular_scanner/built_scanner.dart';
 
 part 'main.g.dart';
 

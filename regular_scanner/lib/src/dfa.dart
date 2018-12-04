@@ -42,14 +42,16 @@ class Transition extends Range {
 }
 
 class TableDrivenScanner<T extends Regex> extends Scanner<T> {
-  const TableDrivenScanner(List<T> regexes, this.states)
-      : super.setRegexes(regexes);
+  const TableDrivenScanner(this.regexes, this.states);
+
+  @override
+  final List<T> regexes;
 
   final List<State<T>> states;
 
   @override
   ScannerMatch<T> matchAsPrefix(final String string, [final int start = 0]) {
-    RangeError.checkValidIndex(start, string, 'start');
+    RangeError.checkValueInInterval(start, 0, string.length, 'string');
 
     var state = states[State.startId];
     var position = start;

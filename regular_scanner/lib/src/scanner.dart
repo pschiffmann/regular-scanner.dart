@@ -1,7 +1,7 @@
 import 'package:charcode/ascii.dart';
 import 'package:meta/meta.dart' show alwaysThrows;
 
-import '../regular_scanner.dart';
+import '../built_scanner.dart';
 import 'ranges.dart';
 
 part 'scanner.g.dart';
