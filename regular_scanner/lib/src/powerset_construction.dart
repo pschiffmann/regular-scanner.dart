@@ -169,7 +169,7 @@ class NfaStartState implements nfa.State {
   int get id => throw UnsupportedError('Undefined for this mock state');
 }
 
-/// Thrown when multiple [Regex]s in a scanner match the same input and all
+/// Thrown when multiple [Regex]es in a scanner match the same input and all
 /// have the same [Regex.precedence].
 class ConflictingRegexException implements Exception {
   ConflictingRegexException(this.regexes, this.input)

@@ -122,7 +122,7 @@ TopLevelVariableElement validateAnnotatedElement(Element element) {
   return variable;
 }
 
-/// Extracts the initializer `const` expressions of the individual [Regex]s
+/// Extracts the initializer `const` expressions of the individual [Regex]es
 /// in the [InjectScanner] annotation from the AST of [variable].
 List<RegexWithInitializer> resolveInjectScannerArguments(
     TopLevelVariableElement variable, DartObject injectScanner) {
