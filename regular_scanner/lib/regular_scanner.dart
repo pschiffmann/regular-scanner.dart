@@ -6,7 +6,7 @@ import 'src/dfa.dart' show TableDrivenScanner;
 import 'src/parser.dart' show parse;
 import 'src/powerset_construction.dart' show constructDfa;
 
-export 'src/powerset_construction.dart' show ConflictingRegexException;
+export 'src/powerset_construction.dart' show AmbiguousRegexException;
 
 class Regex {
   const Regex(this.regularExpression, {this.precedence = 0})

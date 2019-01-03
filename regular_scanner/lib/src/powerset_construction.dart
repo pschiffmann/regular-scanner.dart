@@ -1,5 +1,5 @@
-/// This library implements the [powerset construction][1] algorithm to convert
-/// an NDA (built of [nfa.State]s) into a DFA (built of [dfa.State]s).
+/// [constructDfa] implements the [powerset construction][1] algorithm to
+/// convert an NDA (built of [nfa.State]s) into a DFA (built of [dfa.State]s).
 ///
 /// [1]: https://en.wikipedia.org/wiki/Powerset_construction
 library regular_scanner.src.powerset_construction;
@@ -11,6 +11,7 @@ import 'package:collection/collection.dart' hide binarySearch;
 import '../regular_scanner.dart' show Regex;
 import 'ast.dart' as nfa;
 import 'dfa.dart' as dfa;
+import 'explain_ambiguity.dart';
 import 'ranges.dart';
 
 part 'closure.dart';
@@ -51,10 +52,13 @@ List<dfa.State<T>> constructDfa<T extends Regex>(final List<nfa.Root> regexes) {
     final closure = current.key;
     final id = current.value;
 
-    final state = constructState<T>(closure, lookupId);
-
-    assert(states.length == id);
-    states.add(state);
+    try {
+      final state = constructState<T>(closure, lookupId);
+      assert(states.length == id);
+      states.add(state);
+    } on AmbiguousRegexException catch (e) {
+      throw AmbiguousRegexException(e.regexes, findAmbiguousInput(states, id));
+    }
   }
 
   return states;
@@ -112,7 +116,7 @@ dfa.State<T> constructState<T extends Regex>(
 }
 
 /// Returns the element in [regexes] with the highest [Regex.precedence], or
-/// `null` if [regexes] is empty. Throws a [ConflictingRegexException] if
+/// `null` if [regexes] is empty. Throws an [AmbiguousRegexException] if
 /// there is no single highest precedence regex.
 Regex highestPrecedenceRegex(Iterable<Regex> regexes) {
   final highestPrecedence = Set<Regex>();
@@ -136,7 +140,7 @@ Regex highestPrecedenceRegex(Iterable<Regex> regexes) {
     case 1:
       return highestPrecedence.first;
     default:
-      throw ConflictingRegexException(highestPrecedence, null);
+      throw AmbiguousRegexException(highestPrecedence.toList(), null);
   }
 }
 
@@ -171,14 +175,13 @@ class NfaStartState implements nfa.State {
 
 /// Thrown when multiple [Regex]es in a scanner match the same input and all
 /// have the same [Regex.precedence].
-class ConflictingRegexException implements Exception {
-  ConflictingRegexException(this.regexes, this.input)
-      : assert(regexes.isNotEmpty);
+class AmbiguousRegexException implements Exception {
+  AmbiguousRegexException(this.regexes, this.ambiguousPaths);
 
-  final Set<Regex> regexes;
-  final String input;
+  final List<Regex> regexes;
+  final List<dfa.State> ambiguousPaths;
 
   @override
-  String toString() => "The following regexes match the string '$input': "
+  String toString() => 'The following regexes match the same input: '
       '${regexes.join(", ")}';
 }

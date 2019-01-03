@@ -151,7 +151,7 @@ void main() {
 
     test('throws if multiple regexes have the same precedence', () {
       expect(() => highestPrecedenceRegex([const Regex('a'), const Regex('b')]),
-          throwsA(const TypeMatcher<ConflictingRegexException>()));
+          throwsA(const TypeMatcher<AmbiguousRegexException>()));
     });
   });
 }
