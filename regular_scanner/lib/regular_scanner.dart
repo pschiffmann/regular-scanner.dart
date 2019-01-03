@@ -2,11 +2,9 @@ library regular_scanner;
 
 import 'dart:math';
 
-import 'src/dfa.dart' show TableDrivenScanner;
-import 'src/parser.dart' show parse;
-import 'src/powerset_construction.dart' show constructDfa;
-
-export 'src/powerset_construction.dart' show AmbiguousRegexException;
+import 'src/regexp/parser.dart' show parse;
+import 'src/state_machine/dfa.dart' show TableDrivenScanner;
+import 'src/state_machine/powerset_construction.dart' show constructDfa;
 
 class Regex {
   const Regex(this.regularExpression, {this.precedence = 0})

@@ -1,9 +1,9 @@
 import 'package:charcode/ascii.dart';
 import 'package:meta/meta.dart' hide literal;
 
-import '../regular_scanner.dart' show Regex;
+import '../../regular_scanner.dart' show Regex;
+import '../range.dart';
 import 'ast.dart';
-import 'ranges.dart';
 import 'scanner.dart';
 
 /// Parses [regex] into an [Expression] tree. Throws [FormatException] on

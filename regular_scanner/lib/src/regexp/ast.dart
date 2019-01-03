@@ -1,5 +1,5 @@
-import '../regular_scanner.dart' show Regex;
-import 'ranges.dart';
+import '../../regular_scanner.dart' show Regex;
+import '../range.dart';
 
 /// Each expression object represents a coherent, complete regular expression
 /// pattern. Each expression is either a [State] or a [DelegatingExpression].

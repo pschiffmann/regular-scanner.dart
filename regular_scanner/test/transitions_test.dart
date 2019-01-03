@@ -1,7 +1,7 @@
 import 'package:mockito/mockito.dart';
-import 'package:regular_scanner/src/ast.dart';
-import 'package:regular_scanner/src/powerset_construction.dart';
-import 'package:regular_scanner/src/ranges.dart';
+import 'package:regular_scanner/src/range.dart';
+import 'package:regular_scanner/src/regexp/ast.dart';
+import 'package:regular_scanner/src/state_machine/powerset_construction.dart';
 import 'package:test/test.dart';
 
 class MockState extends Mock implements State {}

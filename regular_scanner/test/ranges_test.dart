@@ -1,4 +1,4 @@
-import 'package:regular_scanner/src/ranges.dart';
+import 'package:regular_scanner/src/range.dart';
 import 'package:test/test.dart';
 
 void main() {

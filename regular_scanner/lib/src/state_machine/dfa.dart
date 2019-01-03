@@ -1,5 +1,5 @@
-import '../regular_scanner.dart';
-import 'ranges.dart';
+import '../../regular_scanner.dart';
+import '../range.dart';
 
 class State<T extends Regex> {
   const State(this.transitions,

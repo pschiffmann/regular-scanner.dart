@@ -8,11 +8,11 @@ import 'dart:collection';
 
 import 'package:collection/collection.dart' hide binarySearch;
 
-import '../regular_scanner.dart' show Regex;
-import 'ast.dart' as nfa;
+import '../../regular_scanner.dart' show Regex;
+import '../range.dart';
+import '../regexp/ast.dart' as nfa;
 import 'dfa.dart' as dfa;
 import 'explain_ambiguity.dart';
-import 'ranges.dart';
 
 part 'closure.dart';
 part 'transitions.dart';

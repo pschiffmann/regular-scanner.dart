@@ -2,11 +2,11 @@ import 'dart:collection';
 
 import 'package:charcode/ascii.dart';
 import 'package:regular_scanner/regular_scanner.dart';
-import 'package:regular_scanner/src/ast.dart' as nfa show State;
-import 'package:regular_scanner/src/dfa.dart' as dfa;
-import 'package:regular_scanner/src/parser.dart';
-import 'package:regular_scanner/src/powerset_construction.dart';
-import 'package:regular_scanner/src/ranges.dart';
+import 'package:regular_scanner/src/range.dart';
+import 'package:regular_scanner/src/regexp/ast.dart' as nfa show State;
+import 'package:regular_scanner/src/regexp/parser.dart';
+import 'package:regular_scanner/src/state_machine/dfa.dart' as dfa;
+import 'package:regular_scanner/src/state_machine/powerset_construction.dart';
 import 'package:test/test.dart';
 
 void main() {

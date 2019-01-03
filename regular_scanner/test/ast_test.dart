@@ -1,5 +1,5 @@
 import 'package:charcode/ascii.dart';
-import 'package:regular_scanner/src/ast.dart';
+import 'package:regular_scanner/src/regexp/ast.dart';
 import 'package:test/test.dart';
 
 final Matcher throwsAssertionError =
