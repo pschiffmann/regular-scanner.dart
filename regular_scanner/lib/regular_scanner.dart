@@ -5,6 +5,7 @@ import 'dart:math';
 import 'src/regexp/parser.dart' show parse;
 import 'src/state_machine/dfa.dart' show TableDrivenScanner;
 import 'src/state_machine/powerset_construction.dart' show constructDfa;
+import 'state_machine.dart';
 
 class Regex {
   const Regex(this.regularExpression, {this.precedence = 0})
@@ -59,7 +60,7 @@ class ScannerMatch<T extends Regex> implements Match {
 abstract class Scanner<T extends Regex> implements Pattern {
   /// Empty constructor allows extending this class, which can be used to
   /// inherit [allMatches].
-  const Scanner();
+  const Scanner(this.regexes);
 
   factory Scanner.deterministic(Iterable<T> regexes) {
     final regexesList = List<T>.unmodifiable(regexes);
@@ -70,7 +71,7 @@ abstract class Scanner<T extends Regex> implements Pattern {
   }
 
   /// The regexes that are matched by this scanner.
-  List<T> get regexes;
+  final List<T> regexes;
 
   @override
   Iterable<ScannerMatch<T>> allMatches(String string, [int start = 0]) sync* {
@@ -87,4 +88,19 @@ abstract class Scanner<T extends Regex> implements Pattern {
 
   @override
   ScannerMatch<T> matchAsPrefix(String string, [int start = 0]);
+}
+
+class StateMachineScanner<T extends Regex> extends Scanner<T> {
+  const StateMachineScanner(this.stateMachine, [List<Regex> regexes])
+      : super(regexes);
+
+  final StateMachine<T> stateMachine;
+
+  @override
+  ScannerMatch<T> matchAsPrefix(String string, [int start = 0]) {
+    final match = stateMachine.matchAsPrefix(string.codeUnits, start);
+    return match == null
+        ? null
+        : ScannerMatch(this, match.accept, string, match.start, match.end);
+  }
 }

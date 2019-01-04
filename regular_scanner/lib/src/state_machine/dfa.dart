@@ -1,5 +1,18 @@
 import '../../regular_scanner.dart';
+import '../../state_machine.dart';
 import '../range.dart';
+
+class Dfa<T> implements StateMachine<T> {
+  @override
+  MatchResult<T> matchAsPrefix(Iterable<int> sequence, [int start = 0]) =>
+      throw UnimplementedError();
+
+  @override
+  Iterable<MatchResult<T>> matchesAt(Iterable<int> sequence, int start) =>
+      throw UnimplementedError();
+}
+
+class DState {}
 
 class State<T extends Regex> {
   const State(this.transitions,
@@ -42,10 +55,7 @@ class Transition extends Range {
 }
 
 class TableDrivenScanner<T extends Regex> extends Scanner<T> {
-  const TableDrivenScanner(this.regexes, this.states);
-
-  @override
-  final List<T> regexes;
+  const TableDrivenScanner(List<T> regexes, this.states) : super(regexes);
 
   final List<State<T>> states;
 
