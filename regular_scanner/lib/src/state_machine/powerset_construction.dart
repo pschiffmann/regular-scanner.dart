@@ -1,7 +1,3 @@
-/// [constructDfa] implements the [powerset construction][1] algorithm to
-/// convert an NDA (built of [nfa.State]s) into a DFA (built of [dfa.DState]s).
-///
-/// [1]: https://en.wikipedia.org/wiki/Powerset_construction
 library regular_scanner.src.powerset_construction;
 
 import 'dart:collection';
@@ -18,7 +14,7 @@ part 'closure.dart';
 part 'transitions.dart';
 
 ///
-List<dfa.DState<T>> constructDfa<T extends Regex>(
+List<dfa.DState<T>> powersetConstruction<T extends Regex>(
     final List<nfa.Root> regexes) {
   if (regexes.isEmpty) {
     throw ArgumentError('regexes must not be empty');
