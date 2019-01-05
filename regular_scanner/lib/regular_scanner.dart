@@ -2,9 +2,6 @@ library regular_scanner;
 
 import 'dart:math';
 
-import 'src/regexp/parser.dart' show parse;
-import 'src/state_machine/dfa.dart' show TableDrivenScanner;
-import 'src/state_machine/powerset_construction.dart' show constructDfa;
 import 'state_machine.dart';
 
 class Regex {
@@ -60,18 +57,14 @@ class ScannerMatch<T extends Regex> implements Match {
 abstract class Scanner<T extends Regex> implements Pattern {
   /// Empty constructor allows extending this class, which can be used to
   /// inherit [allMatches].
-  const Scanner(this.regexes);
+  const Scanner();
 
   factory Scanner.deterministic(Iterable<T> regexes) {
     final regexesList = List<T>.unmodifiable(regexes);
     if (regexesList.length != regexesList.toSet().length)
       throw ArgumentError('regexes contains duplicates');
-    return TableDrivenScanner(regexesList,
-        constructDfa(regexesList.map(parse).toList(growable: false)));
+    return null;
   }
-
-  /// The regexes that are matched by this scanner.
-  final List<T> regexes;
 
   @override
   Iterable<ScannerMatch<T>> allMatches(String string, [int start = 0]) sync* {
@@ -91,16 +84,26 @@ abstract class Scanner<T extends Regex> implements Pattern {
 }
 
 class StateMachineScanner<T extends Regex> extends Scanner<T> {
-  const StateMachineScanner(this.stateMachine, [List<Regex> regexes])
-      : super(regexes);
+  const StateMachineScanner(this.states);
 
-  final StateMachine<T> stateMachine;
+  final List<DState<T>> states;
 
   @override
   ScannerMatch<T> matchAsPrefix(String string, [int start = 0]) {
-    final match = stateMachine.matchAsPrefix(string.codeUnits, start);
-    return match == null
+    RangeError.checkValueInInterval(start, 0, string.length, 'string');
+
+    final dfa = Dfa(states);
+    var accept = dfa.accept;
+    var lastMatch = start;
+    for (var i = start; i < string.length && !dfa.inErrorState; i++) {
+      dfa.moveNext(string.codeUnitAt(i));
+      if (dfa.accept != null) {
+        accept = dfa.accept;
+        lastMatch = i;
+      }
+    }
+    return accept == null
         ? null
-        : ScannerMatch(this, match.accept, string, match.start, match.end);
+        : ScannerMatch(this, accept, string, start, lastMatch);
   }
 }

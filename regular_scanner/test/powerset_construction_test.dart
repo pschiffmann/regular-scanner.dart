@@ -15,7 +15,7 @@ void main() {
         equals: closureEquality.equals, hashCode: closureEquality.hash);
 
     int lookupId(List<nfa.State> closure) => closure.isEmpty
-        ? dfa.State.errorId
+        ? dfa.Dfa.errorState
         : stateIds.putIfAbsent(closure, () => stateIds.length);
 
     setUp(stateIds.clear);
@@ -23,7 +23,7 @@ void main() {
     /// Checks that [dfa.State.transitions] contains the assigned [transitions],
     /// provided as a mapping from the guard range to the successor closure.
     void checkTransitions(
-        dfa.State state, Map<Range, List<nfa.State>> transitions) {
+        dfa.DState state, Map<Range, List<nfa.State>> transitions) {
       final actual = state.transitions.iterator;
       final expected = transitions.entries.iterator;
       while (expected.moveNext()) {
@@ -33,7 +33,7 @@ void main() {
             reason: 'state is missing transition $guard -> $closure');
         expect(actual.current, equals(guard));
         final successorId =
-            closure.isEmpty ? dfa.State.errorId : stateIds[closure];
+            closure.isEmpty ? dfa.Dfa.errorState : stateIds[closure];
         expect(successorId, isNotNull,
             reason:
                 "constructDfa didn't allocate a state for closure $closure");

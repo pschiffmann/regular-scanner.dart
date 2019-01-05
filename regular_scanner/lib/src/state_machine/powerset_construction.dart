@@ -1,5 +1,5 @@
 /// [constructDfa] implements the [powerset construction][1] algorithm to
-/// convert an NDA (built of [nfa.State]s) into a DFA (built of [dfa.State]s).
+/// convert an NDA (built of [nfa.State]s) into a DFA (built of [dfa.DState]s).
 ///
 /// [1]: https://en.wikipedia.org/wiki/Powerset_construction
 library regular_scanner.src.powerset_construction;
@@ -18,7 +18,8 @@ part 'closure.dart';
 part 'transitions.dart';
 
 ///
-List<dfa.State<T>> constructDfa<T extends Regex>(final List<nfa.Root> regexes) {
+List<dfa.DState<T>> constructDfa<T extends Regex>(
+    final List<nfa.Root> regexes) {
   if (regexes.isEmpty) {
     throw ArgumentError('regexes must not be empty');
   }
@@ -34,7 +35,7 @@ List<dfa.State<T>> constructDfa<T extends Regex>(final List<nfa.Root> regexes) {
   /// if this is the first time [closure] is looked up. Returns
   /// [dfa.State.errorId] if [closure] is empty.
   int lookupId(List<nfa.State> closure) => closure.isEmpty
-      ? dfa.State.errorId
+      ? dfa.Dfa.errorState
       : stateIds.putIfAbsent(closure, () {
           final id = stateIds.length;
           unresolved.add(MapEntry(closure, id));
@@ -42,7 +43,7 @@ List<dfa.State<T>> constructDfa<T extends Regex>(final List<nfa.Root> regexes) {
         });
 
   /// The fully constructed states.
-  final states = <dfa.State<T>>[];
+  final states = <dfa.DState<T>>[];
 
   // Initialize [queue] with a start state. Its closure doesn't need to be
   // sorted because it is never looked up again.
@@ -66,7 +67,7 @@ List<dfa.State<T>> constructDfa<T extends Regex>(final List<nfa.Root> regexes) {
 
 /// Constructs an [nfa.State] from [closure]. [lookupId] is used to resolve the
 /// ids of successors of this state.
-dfa.State<T> constructState<T extends Regex>(
+dfa.DState<T> constructState<T extends Regex>(
     List<nfa.State> closure, int Function(List<nfa.State>) lookupId) {
   final transitions = <ConstructionTransition>[];
   final negated = <nfa.CharacterSet>[];
@@ -108,7 +109,7 @@ dfa.State<T> constructState<T extends Regex>(
   }
   defaultTransition.addAll(negated);
 
-  return dfa.State<T>(finalizeTransitions(transitions, lookupId),
+  return dfa.DState<T>(finalizeTransitions(transitions, lookupId),
       defaultTransition: lookupId(defaultTransition.toList(growable: false)),
       accept: highestPrecedenceRegex(closure
           .where((state) => state.accepting)
@@ -179,7 +180,7 @@ class AmbiguousRegexException implements Exception {
   AmbiguousRegexException(this.regexes, this.ambiguousPaths);
 
   final List<Regex> regexes;
-  final List<dfa.State> ambiguousPaths;
+  final List<dfa.DState> ambiguousPaths;
 
   @override
   String toString() => 'The following regexes match the same input: '

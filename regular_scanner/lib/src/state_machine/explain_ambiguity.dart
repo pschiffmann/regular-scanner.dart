@@ -4,9 +4,9 @@ import 'package:collection/collection.dart';
 
 import 'dfa.dart';
 
-/// Finds a shortest path in [states] from [State.startId] to [destination]
+/// Finds a shortest path in [states] from [Dfa.startState] to [destination]
 /// using Dijkstras algorithm.
-List<State> findAmbiguousInput(List<State> states, int destination) {
+List<DState> findAmbiguousInput(List<DState> states, int destination) {
   const uninitialized = -1;
 
   // Maps state id to predecessor state id.
@@ -14,11 +14,11 @@ List<State> findAmbiguousInput(List<State> states, int destination) {
 
   // Maps state id to distance to the start state.
   final distances = List<int>.filled(states.length, uninitialized)
-    ..[State.startId] = 0;
+    ..[Dfa.startState] = 0;
 
   final queue = PriorityQueue<int>(
       (state1, state2) => distances[state1] - distances[state2])
-    ..add(State.startId);
+    ..add(Dfa.startState);
 
   /// If [predecessor] is on a shorter path to the start state, update [state].
   void updateDistance(int state, int predecessor) {
@@ -39,14 +39,14 @@ List<State> findAmbiguousInput(List<State> states, int destination) {
     for (final transition in states[current].transitions) {
       updateDistance(transition.successor, current);
     }
-    if (states[current].defaultTransition != State.errorId) {
+    if (states[current].defaultTransition != Dfa.errorState) {
       updateDistance(states[current].defaultTransition, current);
     }
   }
   assert(distances[destination] != uninitialized,
-      'States ${State.startId} and $destination are not connected');
+      'States ${Dfa.startState} and $destination are not connected');
 
-  final result = <State>[];
+  final result = <DState>[];
   for (var current = destination;
       current != null;
       current = predecessors[current]) {
