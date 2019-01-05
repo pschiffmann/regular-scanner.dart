@@ -3,9 +3,9 @@ import '../range.dart';
 
 // AmbiguousDfa: Dfa<List<T>>
 class Dfa<T> implements StateMachine<T> {
-  Dfa(this.states) {
-    reset();
-  }
+  Dfa(this.states)
+      : assert(states.isNotEmpty, 'states must not be empty'),
+        _current = startState;
 
   static const int startState = 0;
   static const int errorState = -1;
@@ -32,7 +32,7 @@ class Dfa<T> implements StateMachine<T> {
   }
 
   @override
-  void reset() => _current = states.isNotEmpty ? startState : errorState;
+  void reset() => _current = startState;
 
   @override
   StateMachine<T> copy({bool reset: true}) {

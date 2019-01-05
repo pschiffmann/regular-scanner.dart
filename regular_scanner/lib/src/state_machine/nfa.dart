@@ -4,7 +4,14 @@ import '../../state_machine.dart';
 import '../range.dart';
 
 class Nfa<T> implements StateMachine<Set<T>> {
-  Nfa(this.startStates) : _current = startStates;
+  Nfa(this.startStates)
+      : assert(
+            startStates.every((state) =>
+                state.guardType == null &&
+                state.guard == null &&
+                state.negated == null),
+            '`Nfa.startStates` should only contain start states'),
+        _current = startStates;
 
   final Set<NState<T>> startStates;
   Set<NState<T>> _current;
