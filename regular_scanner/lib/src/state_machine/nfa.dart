@@ -4,17 +4,16 @@ import '../../state_machine.dart';
 import '../range.dart';
 
 class Nfa<T> implements StateMachine<Set<T>> {
-  Nfa(this.startStates)
-      : assert(
-            startStates.every((state) =>
-                state.guardType == null &&
-                state.guard == null &&
-                state.negated == null),
-            '`Nfa.startStates` should only contain start states'),
-        _current = startStates;
+  Nfa(Iterable<NState<T>> startStates)
+      : _startState = Set()..add(NStartState(startStates.toList())) {
+    _current = startStates;
+  }
 
-  final Set<NState<T>> startStates;
+  Nfa._copy(this._startState) : _current = _startState;
+
+  final Set<NState<T>> _startState;
   Set<NState<T>> _current;
+  Set<T> _accept;
 
   @override
   bool get inErrorState => _current.isEmpty;
@@ -24,7 +23,6 @@ class Nfa<T> implements StateMachine<Set<T>> {
       .map((state) => state.accept)
       .where((accept) => accept != null)
       .toSet());
-  Set<T> _accept;
 
   @override
   void moveNext(int input) {
@@ -43,13 +41,13 @@ class Nfa<T> implements StateMachine<Set<T>> {
 
   @override
   void reset() {
-    _current = startStates;
+    _current = _startState;
     _accept = null;
   }
 
   @override
   Nfa<T> copy({bool reset: true}) {
-    final result = Nfa(startStates);
+    final result = Nfa._copy(_startState);
     if (!reset) {
       result
         .._current = _current
@@ -62,6 +60,7 @@ class Nfa<T> implements StateMachine<Set<T>> {
 enum GuardType { value, range, wildcard }
 
 /// Interface that can be implemented by user code.
+/// Must use operator== for equality.
 class NState<T> {
   // ignore: type_init_formals
   NState.value(int this.guard, this.successors,
@@ -73,22 +72,33 @@ class NState<T> {
       {this.accept, this.negated = false})
       : guardType = GuardType.value;
 
-  NState.wildcard(this.successors, [this.accept])
+  NState.wildcard(this.successors, {this.accept})
       : guardType = GuardType.value,
-        guard = null,
-        negated = null;
-
-  NState.start(this.successors, [this.accept])
-      : guardType = null,
         guard = null,
         negated = null;
 
   final GuardType guardType;
   final dynamic/*=int|Range|Null*/ guard;
   final bool negated;
-  final Iterable<NState> successors;
+  final Iterable<NState<T>> successors;
 
   final T accept;
+}
+
+class NStartState<T> implements NState<T> {
+  NStartState(this.successors);
+
+  @override
+  final Iterable<NState<T>> successors;
+
+  @override
+  GuardType get guardType => throw UnimplementedError();
+  @override
+  dynamic get guard => throw UnimplementedError();
+  @override
+  bool get negated => throw UnimplementedError();
+  @override
+  T get accept => throw UnimplementedError();
 }
 
 // Implementation note: This is not a method on [NState] because we don't want
