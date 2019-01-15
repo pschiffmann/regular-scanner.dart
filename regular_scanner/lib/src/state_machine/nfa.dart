@@ -63,17 +63,17 @@ enum GuardType { value, range, wildcard }
 /// Must use operator== for equality.
 class NState<T> {
   // ignore: type_init_formals
-  NState.value(int this.guard, this.successors,
-      {this.accept, this.negated = false})
+  NState.value(int this.guard,
+      {this.successors = const [], this.accept, this.negated = false})
       : guardType = GuardType.value;
 
-  // ignore: type_init_formals
-  NState.range(Range this.guard, this.successors,
-      {this.accept, this.negated = false})
-      : guardType = GuardType.value;
+  NState.range(int min, int max,
+      {this.successors = const [], this.accept, this.negated = false})
+      : guardType = GuardType.range,
+        guard = Range(min, max);
 
-  NState.wildcard(this.successors, {this.accept})
-      : guardType = GuardType.value,
+  NState.wildcard({this.successors = const [], this.accept})
+      : guardType = GuardType.wildcard,
         guard = null,
         negated = null;
 

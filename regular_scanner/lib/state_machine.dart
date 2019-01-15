@@ -14,15 +14,22 @@
 /// reading at [StateMachine] to learn how a you can use it to match an input.
 /// Then, take a look at [Nfa] to learn how to construct your own state machine.
 ///
-/// One final note about naming: guards
+/// - explain what it means if an NFA is ambiguous, and that it can't be
+///   detected until [powersetConstruction] is called.
+/// - NFA start states must never be entered again, because the start *is*
+///   already entered without that it's guard is checked for the first input.
+///   TODO: Maybe `NState.start` shouldn't be public API, and we should just
+///   instantiate some of those internally to have a starting point?
+/// - note about naming: guards
 library state_machines;
 
 import 'regular_scanner.dart';
+import 'src/state_machine/dfa.dart';
 import 'src/state_machine/nfa.dart';
-import 'src/state_machine/powerset_construction.dart';
+import 'src/state_machine/powerset_construction.dart' as impl;
 
-export 'src/state_machine/dfa.dart';
-export 'src/state_machine/nfa.dart';
+export 'src/state_machine/dfa.dart' show Dfa, DState, Transition;
+export 'src/state_machine/nfa.dart' show Nfa, NState;
 export 'src/state_machine/powerset_construction.dart' show powersetConstruction;
 
 /// A state machine is a stateful object that processes a single value of an
@@ -59,3 +66,27 @@ abstract class StateMachine<T> {
   /// otherwise, it will be in the same state as this.
   StateMachine<T> copy({bool reset: true});
 }
+
+/// Constructs an unambiguous deterministic state machine from a
+/// nondeterministic one.
+///
+/// For any powerset with a non-empty set of [NState.accept] values,
+/// [resolveAccept] is called to determine which value is used. The default is
+/// to throw a [StateError] when more than one is found.
+List<DState<T>> powersetConstruction<T>(List<NState<T>> nfa,
+        [T Function(Set<T>) resolveAccept]) =>
+    impl.powersetConstruction<T, T>(
+        nfa, resolveAccept ?? (accept) => accept.single);
+
+/// Constructs an ambiguous deterministic state machine from a nondeterministic
+/// one.
+///
+/// For any powerset with a non-empty set of [NState.accept] values, the set is
+/// passed to [preprocessAccept] and the result is used as the [DState.accept]
+/// in the resolved DFA state. This function can be used to filter out certain
+/// values, or to arrange them in a desired order. The default is to return all
+/// values in an undefined order.
+List<DState<List<T>>> powersetConstructionAmbiguous<T>(List<NState<T>> nfa,
+        [List<T> Function(Set<T>) preprocessAccept]) =>
+    impl.powersetConstruction<T, List<T>>(
+        nfa, preprocessAccept ?? (accept) => accept.toList());

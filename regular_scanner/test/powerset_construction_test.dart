@@ -1,157 +1,95 @@
 import 'dart:collection';
 
-import 'package:charcode/ascii.dart';
-import 'package:regular_scanner/regular_scanner.dart';
-import 'package:regular_scanner/src/range.dart';
-import 'package:regular_scanner/src/regexp/ast.dart' as nfa show State;
-import 'package:regular_scanner/src/regexp/parser.dart';
-import 'package:regular_scanner/src/state_machine/dfa.dart' as dfa;
 import 'package:regular_scanner/src/state_machine/powerset_construction.dart';
+import 'package:regular_scanner/state_machine.dart';
 import 'package:test/test.dart';
 
 void main() {
+  // We actually call [constructState] only once, because it is so much work to
+  // set up all the mock values. The test cases then only validate the output
+  // and the objects passed to the callback functions.
   group('constructState', () {
-    final stateIds = LinkedHashMap<List<nfa.State>, int>(
-        equals: closureEquality.equals, hashCode: closureEquality.hash);
+    // Capture the values passed to [computeAccept], and return a mock value
+    // that can only be obtained from this function.
+    final acceptValue1 = 'acceptValue1', acceptValue2 = 'acceptValue2';
+    final computeAcceptResult = 'computeAcceptResult';
 
-    int lookupId(List<nfa.State> closure) => closure.isEmpty
-        ? dfa.Dfa.errorState
-        : stateIds.putIfAbsent(closure, () => stateIds.length);
-
-    setUp(stateIds.clear);
-
-    /// Checks that [dfa.State.transitions] contains the assigned [transitions],
-    /// provided as a mapping from the guard range to the successor closure.
-    void checkTransitions(
-        dfa.DState state, Map<Range, List<nfa.State>> transitions) {
-      final actual = state.transitions.iterator;
-      final expected = transitions.entries.iterator;
-      while (expected.moveNext()) {
-        final guard = expected.current.key;
-        final closure = expected.current.value;
-        expect(actual.moveNext(), isTrue,
-            reason: 'state is missing transition $guard -> $closure');
-        expect(actual.current, equals(guard));
-        final successorId =
-            closure.isEmpty ? dfa.Dfa.errorState : stateIds[closure];
-        expect(successorId, isNotNull,
-            reason:
-                "constructDfa didn't allocate a state for closure $closure");
-        expect(actual.current.successor, successorId);
-      }
-      expect(actual.moveNext(), isFalse,
-          reason: 'state contains unexpected transition ${actual.current}');
+    Set<String> passedToAccept;
+    String computeAccept(Set<String> accept) {
+      passedToAccept = accept;
+      return computeAcceptResult;
     }
 
-    test('correctly places literals in the transitions list', () {
-      final states = parse(const Regex(r'(aa)+|(aaa)+|(ad?)*z')).leafs.toList();
+    // Create a set of successors with illustrative range intersections.
 
-      // position in pattern:
-      //   (aa)+|(aaa)+|(ad?)*z
-      //    ^     ^      ^
-      // expected successors:
-      //   (aa)+|(aaa)+|(ad?)*z
-      //     ^     ^     ^^   ^
-      checkTransitions(
-          constructState([states[0], states[2], states[5]], lookupId), {
-        const Range.single($a): [states[1], states[3], states[5]],
-        const Range.single($d): [states[6]],
-        const Range.single($z): [states[7]]
+    // guards          | -5 -4 -3 -2 -1  0  1  2  3  4  5  6  7 | *
+    //              ------------------------------------------------
+    // enter state   a |  x  x  x  x  x  x  x  x  x  x  x       |
+    // on `x`        b |  x                                     |
+    //               c |  x  x  x  x  x  x  x  x  x  x  x  x  x | x
+    //               d |           x  x  x                      |
+    //               e |                             x  x  x  x |
+    //               f |  x  x                    x  x  x  x  x | x
+    //               g |  x  x     x  x  x  x  x  x  x  x  x  x | x
+    //              ------------------------------------------------
+    // powerset ids       2  3  4  5  5  5  6  6  3  7  7  8  8   9
+    final a = NState<String>.range(-5, 5),
+        b = NState<String>.value(-5),
+        c = NState<String>.wildcard(),
+        d = NState<String>.range(-2, 0),
+        e = NState<String>.range(4, 7),
+        f = NState<String>.range(-3, 2, negated: true),
+        g = NState<String>.value(-3, negated: true);
+
+    // Define the DState ids by hand according to the table above.
+    final powersetIds = LinkedHashMap<Set<NState<String>>, int>(
+        equals: compareSet, hashCode: hashSet)
+      ..addAll({
+        Set.of([a, b, c, f, g]): 2,
+        Set.of([a, c, f, g]): 3,
+        Set.of([a, c]): 4,
+        Set.of([a, c, d, g]): 5,
+        Set.of([a, c, g]): 6,
+        Set.of([a, c, e, f, g]): 7,
+        Set.of([c, e, f, g]): 8,
+        Set.of([c, f, g]): 9
       });
+
+    int lookupId(Set<NState<String>> powerset) =>
+        powersetIds[powerset] ?? fail('Unexpected powerset: $powerset');
+
+    // Create a powerset that has states a-g as successors, and pass it to
+    // [constructState].
+    final powerset = Set<NState<String>>.of([
+      NState.value(1, successors: [a, b], accept: acceptValue1),
+      NState.value(1, successors: [c, d], accept: acceptValue2),
+      NState.range(1, 2, successors: [e, f, g]),
+      NState.wildcard(successors: [b, d], accept: acceptValue1)
+    ]);
+    final dstate =
+        constructState<String, String>(powerset, lookupId, computeAccept);
+
+    test('uses `computeAccept` to calculate `DState.accept`', () {
+      expect(passedToAccept, unorderedEquals([acceptValue1, acceptValue2]));
+      expect(dstate.accept, computeAcceptResult);
     });
 
-    test('correctly places character sets in the transitions list', () {
-      final states = parse(const Regex(r'a[a-d]?[c-f]+')).leafs.toList();
-
-      //   a[a-d]?[c-f]+
-      //   ^
-      checkTransitions(constructState([states[0]], lookupId), {
-        // [a-b] -> [a-d]
-        const Range($a, $b): [states[1]],
-        // [c-d] -> [a-d], [b-f]
-        const Range($c, $d): [states[1], states[2]],
-        // [e-f] -> [b-f]
-        const Range($e, $f): [states[2]]
-      });
+    test('sorts successors into appropriate buckets', () {
+      expect(dstate.transitions, const [
+        Transition(-5, -5, 2),
+        Transition(-4, -4, 3),
+        Transition(-3, -3, 4),
+        Transition(-2, 0, 5),
+        Transition(1, 2, 6),
+        Transition(3, 3, 3),
+        Transition(4, 5, 7),
+        Transition(6, 7, 8),
+      ]);
     });
 
     test(
-        'adds negated character sets to non-intersecting ranges '
-        'in the transitions list and the default transition', () {
-      final states = parse(const Regex(r'a([a-f]+|[^d-p]|k|z)')).leafs.toList();
-
-      final result = constructState([states[0]], lookupId);
-      checkTransitions(result, {
-        // [a-c] -> [a-f], [^d-p]
-        const Range($a, $c): [states[1], states[2]],
-        // [d-f] -> [a-f]
-        const Range($d, $f): [states[1]],
-        // [g-j] -> -1
-        const Range($g, $j): const [],
-        // [k] -> k
-        const Range.single($k): [states[3]],
-        // [l-p] -> -1
-        const Range($l, $p): const [],
-        // [z] -> [^d-p], z
-        const Range.single($z): [states[2], states[4]]
-      });
-      // default -> [^d-p]
-      expect(result.defaultTransition, stateIds[[states[2]]]);
-    });
-
-    test(
-        'correctly merges literals, normal and negated character sets and dots',
-        () {
-      final states =
-          parse(const Regex(r'a([a-f]|[^adr-w]|f|.)')).leafs.toList();
-
-      final result = constructState([states[0]], lookupId);
-      checkTransitions(result, {
-        // [a] -> [a-f], .
-        const Range.single($a): [states[1], states[4]],
-        // [b-c] -> [a-f], [^adr-w], .
-        const Range($b, $c): [states[1], states[2], states[4]],
-        // [d] -> [a-f], .
-        const Range.single($d): [states[1], states[4]],
-        // [e] -> [a-f], [^adr-w], .
-        const Range.single($e): [states[1], states[2], states[4]],
-        // [f] -> [a-f], [^adr-w], f, .
-        const Range.single($f): [states[1], states[2], states[3], states[4]],
-        // [r-w] -> .
-        const Range($r, $w): [states[4]]
-      });
-      expect(result.defaultTransition, stateIds[[states[2], states[4]]]);
-    });
-
-    test(
-        'composes the default transition state of dot '
-        'and negated character set states',
-        () {});
-
-    test('resolves the accepting regex if one exists', () {});
-
-    test('resolves the accepting regex to `null` if none exists', () {});
-  });
-
-  group('highestPrecedenceRegex', () {
-    test('returns `null` for empty lists', () {
-      expect(highestPrecedenceRegex([]), isNull);
-    });
-
-    test('returns the highest precedence regex if only one exists', () {
-      final expected = const Regex('a', precedence: 3);
-      expect(
-          highestPrecedenceRegex([
-            const Regex('b', precedence: 1),
-            expected,
-            const Regex('c', precedence: 1)
-          ]),
-          expected);
-    });
-
-    test('throws if multiple regexes have the same precedence', () {
-      expect(() => highestPrecedenceRegex([const Regex('a'), const Regex('b')]),
-          throwsA(const TypeMatcher<AmbiguousRegexException>()));
-    });
+        'includes wildcard and negated successors '
+        'in `DState.defaultTransition`',
+        () => expect(dstate.defaultTransition, 9));
   });
 }

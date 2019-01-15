@@ -64,8 +64,5 @@ class Transition extends Range {
   final int successor;
 
   @override
-  String toString() => min == max
-      ? '${String.fromCharCode(min)} -> $successor'
-      : '[${String.fromCharCode(min)}-${String.fromCharCode(max)}] '
-      '-> $successor';
+  String toString() => '${super.toString()} -> successor';
 }
