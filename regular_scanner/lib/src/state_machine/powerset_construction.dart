@@ -36,7 +36,7 @@ List<DState<D>> powersetConstruction<N, D>(
         });
 
   /// Initialize [unresolved].
-  lookupId(Set()..add(NStartState(nfa)));
+  lookupId(nfa.toSet());
 
   while (unresolved.isNotEmpty) {
     final current = unresolved.removeFirst();

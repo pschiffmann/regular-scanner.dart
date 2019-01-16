@@ -4,14 +4,13 @@ import '../../state_machine.dart';
 import '../range.dart';
 
 class Nfa<T> implements StateMachine<Set<T>> {
-  Nfa(Iterable<NState<T>> startStates)
-      : _startState = Set()..add(NStartState(startStates.toList())) {
-    _current = startStates;
+  Nfa(Iterable<NState<T>> startStates) : _startStates = startStates.toSet() {
+    _current = _startStates;
   }
 
-  Nfa._copy(this._startState) : _current = _startState;
+  Nfa._copy(this._startStates) : _current = _startStates;
 
-  final Set<NState<T>> _startState;
+  final Set<NState<T>> _startStates;
   Set<NState<T>> _current;
   Set<T> _accept;
 
@@ -20,8 +19,8 @@ class Nfa<T> implements StateMachine<Set<T>> {
 
   @override
   Set<T> get accept => _accept ??= UnmodifiableSetView(_current
+      .where((state) => state.accept != null)
       .map((state) => state.accept)
-      .where((accept) => accept != null)
       .toSet());
 
   @override
@@ -41,13 +40,13 @@ class Nfa<T> implements StateMachine<Set<T>> {
 
   @override
   void reset() {
-    _current = _startState;
+    _current = _startStates;
     _accept = null;
   }
 
   @override
   Nfa<T> copy({bool reset: true}) {
-    final result = Nfa._copy(_startState);
+    final result = Nfa._copy(_startStates);
     if (!reset) {
       result
         .._current = _current
@@ -77,28 +76,17 @@ class NState<T> {
         guard = null,
         negated = null;
 
+  NState.start({this.successors = const [], this.accept})
+      : guardType = null,
+        guard = null,
+        negated = null;
+
   final GuardType guardType;
   final dynamic/*=int|Range|Null*/ guard;
   final bool negated;
   final Iterable<NState<T>> successors;
 
   final T accept;
-}
-
-class NStartState<T> implements NState<T> {
-  NStartState(this.successors);
-
-  @override
-  final Iterable<NState<T>> successors;
-
-  @override
-  GuardType get guardType => throw UnimplementedError();
-  @override
-  dynamic get guard => throw UnimplementedError();
-  @override
-  bool get negated => throw UnimplementedError();
-  @override
-  T get accept => throw UnimplementedError();
 }
 
 // Implementation note: This is not a method on [NState] because we don't want
