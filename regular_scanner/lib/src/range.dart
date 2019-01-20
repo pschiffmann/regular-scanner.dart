@@ -9,7 +9,7 @@ int binarySearch(final List<Range> sortedList, final int value) {
   var min = 0;
   var max = sortedList.length;
   while (min < max) {
-    final mid = min + ((max - min) ~/ 1);
+    final mid = min + ((max - min) ~/ 2);
     final current = sortedList[mid];
     if (value < current.min) {
       max = mid;

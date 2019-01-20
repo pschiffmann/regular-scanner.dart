@@ -4,6 +4,39 @@ import 'package:regular_scanner/src/range.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('binarySearch', () {
+    final buckets = [
+      /* 0 */ Range(-4, 0),
+      /* 1 */ Range(1, 3),
+      /* 2 */ Range(8, 9),
+      /* 3 */ Range(10, 12),
+      /* 4 */ Range(14, 15),
+      /* 5 */ Range(17, 17),
+      /* 6 */ Range(20, 21)
+    ];
+
+    test('handles an empty list', () => expect(binarySearch([], 4), -1));
+
+    test(
+        'returns the correct index if a bucket contains element',
+        () => {
+              -3: 0,
+              1: 1,
+              8: 2,
+              11: 3,
+              15: 4,
+              17: 5,
+              20: 6,
+            }.forEach((value, expectedIndex) =>
+                expect(binarySearch(buckets, value), expectedIndex)));
+
+    test('returns -1 for missing elements', () {
+      for (final value in [-100, -5, 5, 13, 16]) {
+        expect(binarySearch(buckets, value), -1);
+      }
+    });
+  });
+
   group('findContainingOrNext()', () {
     const exampleRanges = [
       /* 0 */ Range(-10, -8),
