@@ -28,6 +28,7 @@ import 'src/state_machine/dfa.dart';
 import 'src/state_machine/nfa.dart';
 import 'src/state_machine/powerset_construction.dart' as impl;
 
+export 'src/range.dart' show Range;
 export 'src/state_machine/dfa.dart' show Dfa, DState, Transition;
 export 'src/state_machine/nfa.dart' show Nfa, NState;
 export 'src/state_machine/powerset_construction.dart' show powersetConstruction;

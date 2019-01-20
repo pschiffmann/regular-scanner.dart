@@ -18,7 +18,7 @@ class Regex {
 
 /// Returned by [Scanner.matchAsPrefix] to indicate which [regex] matched a
 /// given [input].
-class ScannerMatch<T extends Regex> implements Match {
+class ScannerMatch<T> implements Match {
   ScannerMatch(this.pattern, this.regex, this.input, this.start, this.end)
       : assert(0 <= start && start <= end && end <= input.length);
 
@@ -54,7 +54,7 @@ class ScannerMatch<T extends Regex> implements Match {
   int get groupCount => 0;
 }
 
-abstract class Scanner<T extends Regex> implements Pattern {
+abstract class Scanner<T> implements Pattern {
   /// Empty constructor allows extending this class, which can be used to
   /// inherit [allMatches].
   const Scanner();
@@ -83,7 +83,7 @@ abstract class Scanner<T extends Regex> implements Pattern {
   ScannerMatch<T> matchAsPrefix(String string, [int start = 0]);
 }
 
-class StateMachineScanner<T extends Regex> extends Scanner<T> {
+class StateMachineScanner<T> extends Scanner<T> {
   const StateMachineScanner(this.states);
 
   final List<DState<T>> states;
