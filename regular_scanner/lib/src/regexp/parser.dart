@@ -8,7 +8,7 @@ import 'scanner.dart';
 
 /// Parses [regex] into an [Expression] tree. Throws [FormatException] on
 /// invalid regexes, and [RangeError] on unpaired surrogates in [regex].
-Root parse(Regex regex) {
+Expression parse(Regex regex) {
   final context = TokenIterator(regex.regularExpression);
   if (!context.moveNext()) {
     throw FormatException('Empty regular expression', regex.regularExpression);
@@ -16,20 +16,17 @@ Root parse(Regex regex) {
   final expression = parseUnknown(context, expectGroupEnd: false);
   assert(context.current == null);
 
-  return Root(expression, regex);
+  return expression;
 }
 
-Expression /* Literal|Sequence */ parseLiteral(TokenIterator context) {
+Literal parseLiteral(TokenIterator context) {
   assert(context.current == literal);
-  return context.literalIsSingleCodeUnit
-      ? Literal(context.codeUnit, parseRepetiton(context..moveNext()))
-      : Sequence(context.codeUnits.map((int codeUnit) => Literal(codeUnit)),
-          parseRepetiton(context..moveNext()));
+  return Literal(context.codeUnit, parseRepetiton(context..moveNext()));
 }
 
-Dot parseDot(TokenIterator context) {
+Wildcard parseWildcard(TokenIterator context) {
   assert(context.current == dot);
-  return Dot(parseRepetiton(context..moveNext()));
+  return Wildcard(parseRepetiton(context..moveNext()));
 }
 
 /// If the current token is a [repetition], returns the according repetition
@@ -53,12 +50,10 @@ Repetition parseRepetiton(TokenIterator context) {
 }
 
 /// Parses an unknown sequence of expressions until [context] is exhausted.
-/// Creates [Sequence]s and [Alternation]s as needed, or returns a [State] if
-/// only a single state pattern was found.
+/// Creates [Sequence]s and [Alternation]s as needed.
 ///
 /// If [expectGroupEnd] is `true`, stops parsing when reaching the first
-/// [groupEnd]. Else, throws a [FormatException] when finding that
-/// character.
+/// [groupEnd]. Else, throws a [FormatException] when finding that token.
 Expression parseUnknown(TokenIterator context,
     {@required bool expectGroupEnd}) {
   assert(context.current != null);
@@ -90,7 +85,7 @@ Expression parseUnknown(TokenIterator context,
         sequence.add(parseLiteral(context));
         break;
       case dot:
-        sequence.add(parseDot(context));
+        sequence.add(parseWildcard(context));
         break;
       case repetition:
         context.error('Unescaped repetition character');
@@ -128,20 +123,20 @@ Expression parseUnknown(TokenIterator context,
       : Alternation(alternatives);
 }
 
-Expression parseGroup(TokenIterator context) {
+Group parseGroup(TokenIterator context) {
   assert(context.current == groupStart);
 
   final startIndex = context.index;
   context.moveNext(onRegexEnd: 'Unclosed `(`');
 
-  final result = parseUnknown(context, expectGroupEnd: true);
+  final child = parseUnknown(context, expectGroupEnd: true);
 
   if (context.current != groupEnd) {
     context.error('Unclosed `(`', startIndex);
   }
   context.moveNext();
 
-  return result..repetition |= parseRepetiton(context);
+  return Group(child, parseRepetiton(context));
 }
 
 CharacterSet parseCharacterSet(TokenIterator context) {
@@ -184,5 +179,5 @@ CharacterSet parseCharacterSet(TokenIterator context) {
   context
     ..insideCharacterSet = false
     ..moveNext();
-  return CharacterSet(ranges, negated)..repetition = parseRepetiton(context);
+  return CharacterSet(ranges, negated, parseRepetiton(context));
 }
