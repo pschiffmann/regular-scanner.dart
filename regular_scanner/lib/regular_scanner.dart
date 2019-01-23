@@ -2,6 +2,8 @@ library regular_scanner;
 
 import 'dart:math';
 
+import 'src/regexp/ast_to_nfa.dart';
+import 'src/regexp/parser.dart';
 import 'state_machine.dart';
 
 class Regex {
@@ -59,6 +61,19 @@ abstract class Scanner<T> implements Pattern {
   /// inherit [allMatches].
   const Scanner();
 
+  ///
+  static Scanner<T> unambiguous<T extends Regex>(Iterable<T> regexes) {
+    final startStates = <NState<T>>[];
+    for (final regex in regexes) {
+      final ast = parse(regex);
+      startStates.add(astToNfa(ast, regex));
+    }
+    return StateMachineScanner(powersetConstruction(startStates));
+  }
+
+  static Scanner<List<T>> ambiguous<T extends Regex>(Iterable<T> regexes) =>
+      null;
+
   factory Scanner.deterministic(Iterable<T> regexes) {
     final regexesList = List<T>.unmodifiable(regexes);
     if (regexesList.length != regexesList.toSet().length)
@@ -94,16 +109,20 @@ class StateMachineScanner<T> extends Scanner<T> {
 
     final dfa = Dfa(states);
     var accept = dfa.accept;
-    var lastMatch = start;
-    for (var i = start; i < string.length && !dfa.inErrorState; i++) {
-      dfa.moveNext(string.codeUnitAt(i));
+    var end = start;
+
+    final runes = RuneIterator.at(string, start);
+    while (runes.moveNext()) {
+      dfa.moveNext(runes.current);
+      if (dfa.inErrorState) break;
       if (dfa.accept != null) {
         accept = dfa.accept;
-        lastMatch = i;
+        end = runes.rawIndex + runes.currentSize;
       }
     }
+
     return accept == null
         ? null
-        : ScannerMatch(this, accept, string, start, lastMatch);
+        : ScannerMatch(this, accept, string, start, end);
   }
 }

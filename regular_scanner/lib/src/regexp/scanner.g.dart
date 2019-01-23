@@ -20,7 +20,7 @@ const _$defaultContextScanner = StateMachineScanner<TokenType>([
   ], defaultTransition: -1),
   DState([], defaultTransition: -1, accept: groupStart),
   DState([], defaultTransition: -1, accept: groupEnd),
-  DState([], defaultTransition: -1, accept: repetition),
+  DState([], defaultTransition: -1),
   DState([], defaultTransition: -1, accept: dot),
   DState([], defaultTransition: -1, accept: characterSetStart),
   DState([
@@ -48,7 +48,7 @@ const _$defaultContextScanner = StateMachineScanner<TokenType>([
   DState([], defaultTransition: -1, accept: choice),
   DState([], defaultTransition: -1, accept: _defaultContextEscapes),
   DState([], defaultTransition: -1, accept: _controlCharacterEscape),
-  DState([], defaultTransition: -1, accept: characterSetAlias),
+  DState([], defaultTransition: -1),
   DState([
     Transition(123, 123, 14),
   ], defaultTransition: -1),
