@@ -1,4 +1,3 @@
-/*
 import 'package:charcode/ascii.dart';
 import 'package:regular_scanner/src/regexp/scanner.dart';
 import 'package:regular_scanner/src/regexp/token.dart';
@@ -13,12 +12,11 @@ final commonEscapeSequences = [
   Token(r'\f', literal, $ff),
   Token(r'\0', literal, $nul),
   Token(r'\u{41}', literal, $A),
-  Token(r'\U{41}', literal, $A),
-  Token(r'\u{1F600}', literal, '😀'.codeUnits)
+  Token(r'\u{1F600}', literal, 0x1F600)
 ];
 
 /// Instantiates a [TokenIterator] with all [Token.lexeme]s of [tokens] as input
-/// and tests that that the iterator recognizes the expected types and runes.
+/// and tests that the iterator recognizes the expected types and code points.
 void expectTokens(List<Token> tokens, {bool inCharacterSetContext: false}) {
   final it = TokenIterator(tokens.map((t) => t.lexeme).join(''))
     ..insideCharacterSet = inCharacterSetContext;
@@ -29,13 +27,14 @@ void expectTokens(List<Token> tokens, {bool inCharacterSetContext: false}) {
   for (final token in tokens) {
     expect(it.moveNext(), isTrue);
     expect(it.current, token.type);
-    expect(it.literalIsSingleCodeUnit ? it.codeUnit : it.codeUnits, token.rune);
+    expect(it.codePoint, token.codePoint);
     expect(it.index, index);
 
     index += token.lexeme.length;
   }
   expect(it.moveNext(), isFalse);
   expect(it.current, isNull);
+  expect(it.codePoint, isNull);
   expect(it.index, isNull);
 }
 
@@ -49,16 +48,16 @@ void expectThrows(List<String> invalidInputs,
   }
 }
 
-/// Describes as which [type] and [rune] the [lexeme] should be recognized by
-/// [TokenIterator.moveNext].
+/// Describes as which [type] and [codePoint] the [lexeme] should be recognized
+/// by [TokenIterator.moveNext].
 class Token {
-  Token(this.lexeme, this.type, [dynamic rune])
-      : rune = rune ??
-            (lexeme.length == 1 ? lexeme.codeUnitAt(0) : lexeme.codeUnits);
+  Token(this.lexeme, this.type, [int codePoint])
+      : codePoint = type == literal ? codePoint ?? lexeme.runes.single : null,
+        assert(type == literal || codePoint == null);
 
   final String lexeme;
   final TokenType type;
-  final dynamic /* int|List<int> */ rune;
+  final int codePoint;
 }
 
 void main() {
@@ -67,36 +66,7 @@ void main() {
       final it = TokenIterator('');
       expect(it.moveNext(), isFalse);
       expect(it.current, isNull);
-    });
-
-    test('becomes exhausted when throwing an exception', () {
-      // A list of (explanation/invalid input string/exception type) triples.
-      const invalidInputs = [
-        [
-          'invalid escape sequence',
-          r'\~',
-          TypeMatcher<FormatException>(),
-        ],
-        [
-          'escape character with no following character',
-          r'\',
-          TypeMatcher<FormatException>(),
-        ],
-        [
-          'outside unicode code point range',
-          r'\u{FFFFFF}',
-          TypeMatcher<RangeError>(),
-        ]
-      ];
-
-      for (final input in invalidInputs) {
-        final it = TokenIterator(input[1]);
-        expect(it.moveNext, throwsA(input[2]), reason: input[0]);
-        expect(it.current, isNull);
-        expect(it.index, isNull);
-        expect(it.codeUnit, isNull);
-        expect(it.moveNext(), isFalse);
-      }
+      expect(it.codePoint, isNull);
     });
 
     group('in default context', () {
@@ -122,9 +92,9 @@ void main() {
                 Token('[', characterSetStart),
                 Token(']', characterSetEnd),
                 Token('.', dot),
-                Token('+', repetition),
-                Token('*', repetition),
-                Token('?', repetition),
+                Token('+', repetitionPlus),
+                Token('*', repetitionStar),
+                Token('?', repetitionQuestionmark),
                 Token('(', groupStart),
                 Token(')', groupEnd),
                 Token('|', choice)
@@ -155,17 +125,6 @@ void main() {
                 r'\^',
                 r'\🙃',
                 r'\',
-              ]));
-
-      test(
-          'recognizes character set aliases',
-          () => expectTokens([
-                Token(r'\d', characterSetAlias, $d),
-                Token(r'\w', characterSetAlias, $w),
-                Token(r'\s', characterSetAlias, $s),
-                Token(r'\D', characterSetAlias, $D),
-                Token(r'\W', characterSetAlias, $W),
-                Token(r'\S', characterSetAlias, $S)
               ]));
     });
 
@@ -224,34 +183,9 @@ void main() {
                 r'\*',
                 r'\?',
                 r'\|',
-                r'\d',
-                r'\w',
-                r'\s',
-                r'\D',
-                r'\W',
-                r'\S',
                 r'\🙃',
                 r'\',
               ], inCharacterSetContext: true));
     });
   });
-
-  group('codePointToRune', () {
-    test('returns BMP code points unchanged', () {
-      expect(codePointToRune(0x41), 0x41);
-      expect(codePointToRune(0xD7FF), 0xD7FF);
-      expect(codePointToRune(0xFFFF), 0xFFFF);
-    });
-
-    test('splits non-BMP code points into surrogate pairs', () {
-      expect(codePointToRune(0x1D11E), [0xD834, 0xDD1E]);
-    });
-
-    test('rejects non-code point numbers', () {
-      expect(() => codePointToRune(-1), throwsRangeError);
-      expect(() => codePointToRune(0x110000), throwsRangeError);
-      expect(() => codePointToRune(0xD800), throwsRangeError);
-    });
-  });
 }
-*/

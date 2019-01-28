@@ -2,7 +2,7 @@
 /// there.
 library a;
 
-import 'dart:collection';
+import 'package:quiver/collection.dart';
 
 import '../../regular_scanner.dart';
 import '../state_machine/nfa.dart';
@@ -10,31 +10,32 @@ import 'ast.dart';
 
 NState<T> astToNfa<T extends Regex>(Expression ast, T regex) {
   final acceptingStates = ast.last.toSet();
+  final nstates = ListMultimap<AtomicExpression, NState<T>>();
 
-  NState<T> nstateForLeaf(dynamic leaf) {
-    leaf = leaf as AtomicExpression;
+  for (final leaf in ast.leafs) {
     final accept = acceptingStates.contains(leaf) ? regex : null;
     if (leaf is Literal) {
-      return NState<T>.value(leaf.codePoint, successors: [], accept: accept);
+      nstates.add(leaf,
+          NState<T>.value(leaf.codePoint, successors: [], accept: accept));
     } else if (leaf is CharacterSet) {
-      return NState.range(leaf.codePoints.first.min, leaf.codePoints.first.max,
-          negated: leaf.negated, successors: [], accept: accept);
+      nstates.addValues(
+          leaf,
+          leaf.codePoints.map((range) => NState.range(range.min, range.max,
+              negated: leaf.negated, successors: [], accept: accept)));
     } else if (leaf is Wildcard) {
-      return NState.wildcard(successors: [], accept: accept);
+      nstates.add(leaf, NState.wildcard(successors: [], accept: accept));
+    } else {
+      throw UnimplementedError();
     }
-    throw UnimplementedError();
   }
 
-  final nstates = LinkedHashMap<AtomicExpression, NState<T>>.fromIterable(
-      ast.leafs,
-      value: nstateForLeaf);
-  nstates.forEach((state, nstate) {
-    for (final successor in state.successors.toSet()) {
-      (nstate.successors as List).add(nstates[successor]);
+  nstates.forEach((leaf, nstate) {
+    for (final successor in leaf.successors.toSet()) {
+      (nstate.successors as List<NState<T>>).addAll(nstates[successor]);
     }
   });
 
   return NState.start(
-      successors: ast.first.map((state) => nstates[state]).toList(),
+      successors: ast.first.expand((state) => nstates[state]).toList(),
       accept: ast.optional ? regex : null);
 }

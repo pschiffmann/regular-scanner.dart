@@ -172,5 +172,6 @@ CharacterSet parseCharacterSet(TokenIterator context) {
   context
     ..insideCharacterSet = false
     ..moveNext();
-  return CharacterSet(ranges, negated, parseRepetiton(context));
+  return CharacterSet(ranges,
+      negated: negated, repetition: parseRepetiton(context));
 }

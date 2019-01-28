@@ -66,8 +66,8 @@ class Literal extends AtomicExpression {
 }
 
 class CharacterSet extends AtomicExpression {
-  CharacterSet(this.codePoints, this.negated,
-      [Repetition repetition = Repetition.one])
+  CharacterSet(this.codePoints,
+      {this.negated = false, Repetition repetition = Repetition.one})
       : super(repetition);
 
   final List<Range> codePoints;

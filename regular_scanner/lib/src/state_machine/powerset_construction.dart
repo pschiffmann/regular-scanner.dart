@@ -114,12 +114,12 @@ DState<D> constructState<N, D>(Set<NState<N>> powerset,
     }
   }
 
+  final accept =
+      powerset.where((s) => s.accept != null).map((s) => s.accept).toSet();
+
   return DState(transitions,
       defaultTransition: lookupId(defaultTransition),
-      accept: computeAccept(powerset
-          .where((s) => s.accept != null)
-          .map((s) => s.accept)
-          .toSet()));
+      accept: accept.isEmpty ? null : computeAccept(accept));
 }
 
 bool compareSet(Set a, Set b) => a.length == b.length && a.containsAll(b);

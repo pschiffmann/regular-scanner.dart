@@ -36,10 +36,7 @@ class TokenType extends Regex {
 }
 
 /// Extractor for [literal].
-int _extractLiteral(ScannerMatch m) {
-  assert(m.regex == literal);
-  return m.length == 1
-      ? m.input.codeUnitAt(m.start)
-      : decodeSurrogatePair(
-          m.input.codeUnitAt(m.start), m.input.codeUnitAt(m.start + 1));
-}
+int _extractLiteral(ScannerMatch m) => m.length == 1
+    ? m.input.codeUnitAt(m.start)
+    : decodeSurrogatePair(
+        m.input.codeUnitAt(m.start), m.input.codeUnitAt(m.start + 1));
