@@ -65,7 +65,7 @@ abstract class Scanner<T> implements Pattern {
   static Scanner<T> unambiguous<T extends Regex>(Iterable<T> regexes) {
     final startStates = <NState<T>>[];
     for (final regex in regexes) {
-      final ast = parse(regex);
+      final ast = parse(regex.regularExpression);
       startStates.add(astToNfa(ast, regex));
     }
     return StateMachineScanner(powersetConstruction(startStates));

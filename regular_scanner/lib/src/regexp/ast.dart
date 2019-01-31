@@ -9,11 +9,8 @@ abstract class Expression {
 
   Iterable<AtomicExpression> get leafs;
 
-  /// Returns all recursive children of type [AtomicExpression] in this subtree that can
-  /// be reached with a single transition from a preceding expression.
-  ///
-  /// May contain duplicates. See [Sequence.successors] for an explanation when
-  /// this happens.
+  /// Returns all recursive children of type [AtomicExpression] in this subtree
+  /// that can be reached with a single transition from a preceding expression.
   Iterable<AtomicExpression> get first;
 
   /// Returns all recursive children of this that can exit this subtree with a
@@ -28,6 +25,10 @@ abstract class _Parent implements Expression {
   /// Returns all successors of [child] that it can reach with a single
   /// transition, including successors from [parent]. `child.parent` must be
   /// `this`.
+  ///
+  /// May contain duplicates. For example, in the expression `(a+)+`, both the
+  /// `a+` [Literal] and the `()+` [Group] will wrap around and report `a` as a
+  /// successor of itself.
   Iterable<AtomicExpression> successors(final Expression child);
 }
 
@@ -46,6 +47,11 @@ abstract class AtomicExpression extends Expression {
 
   /// Returns all states that are reachable from this state with a single
   /// transition.
+  ///
+  /// May contain duplicates. For example, in the expression `(a+)+`, both the
+  /// `a+` [Literal] and the `()+` [Group] will wrap around and report `a` as a
+  /// successor of itself. Use [Iterable.toSet] on the result of this to filter
+  /// out duplicates.
   Iterable<AtomicExpression> get successors sync* {
     if (_repetition.repeat) yield this;
     if (parent != null) yield* parent.successors(this);
@@ -200,9 +206,9 @@ class Alternation extends CompositeExpression {
   Iterable<AtomicExpression> get last => children.expand((child) => child.last);
 
   @override
-  Iterable<AtomicExpression> successors(final Expression child) sync* {
+  Iterable<AtomicExpression> successors(final Expression child) {
     assert(child.parent == this);
-    if (parent != null) yield* parent.successors(this);
+    return parent != null ? parent.successors(this) : [];
   }
 
   @override

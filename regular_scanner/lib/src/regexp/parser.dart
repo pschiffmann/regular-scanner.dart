@@ -1,6 +1,5 @@
 import 'package:meta/meta.dart' hide literal;
 
-import '../../regular_scanner.dart' show Regex;
 import '../range.dart';
 import 'ast.dart';
 import 'scanner.dart';
@@ -8,10 +7,10 @@ import 'token.dart';
 
 /// Parses [regex] into an [Expression] tree. Throws [FormatException] on
 /// invalid regexes, and [RangeError] on unpaired surrogates in [regex].
-Expression parse(Regex regex) {
-  final context = TokenIterator(regex.regularExpression);
+Expression parse(String regex) {
+  final context = TokenIterator(regex);
   if (!context.moveNext()) {
-    throw FormatException('Empty regular expression', regex.regularExpression);
+    throw const FormatException('Empty regular expression');
   }
   final expression = parseUnknown(context, expectGroupEnd: false);
   assert(context.current == null);
