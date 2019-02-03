@@ -6,7 +6,6 @@ import 'package:quiver/core.dart';
 
 import '../range.dart';
 import 'dfa.dart';
-import 'explain_ambiguity.dart';
 import 'nfa.dart';
 
 /// Finds all transitive successors of [nfa], passes their powersets to
@@ -50,9 +49,7 @@ List<DState<D>> powersetConstruction<N, D>(
       assert(states.length == id);
       states.add(state);
     } on AmbiguousInputException catch (e) {
-      e
-        ..path = findShortestPath(states)
-        ..ambiguousState = id;
+      e.states = states;
       rethrow;
     }
   }
@@ -133,3 +130,10 @@ DState<D> constructState<N, D>(Set<NState<N>> powerset,
 bool compareSet(Set a, Set b) => a.length == b.length && a.containsAll(b);
 int hashSet(Set s) =>
     hashObjects(s.map((e) => e.hashCode).toList(growable: false)..sort());
+
+class AmbiguousInputException<T> implements Exception {
+  AmbiguousInputException(this.collisions);
+
+  final Iterable<T> collisions;
+  List<DState> states;
+}

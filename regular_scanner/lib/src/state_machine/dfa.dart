@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart' show PriorityQueue;
+
 import '../../state_machine.dart';
 import '../range.dart';
 
@@ -39,6 +41,68 @@ class Dfa<T> implements StateMachine<T> {
     final result = Dfa(states);
     if (!reset) result._current = _current;
     return result;
+  }
+
+  /// Finds a shortest path in [states] from [Dfa.startState] to a state with id
+  /// `states.length` using Dijkstras algorithm.
+  ///
+  /// Used by [AmbiguousInputException.toString] to generate ambiguous input
+  /// sequences.
+  static List<DState<T>> findShortestPath<T>(List<DState<T>> states) {
+    if (states.isEmpty) return [];
+
+    const uninitialized = -1;
+    final destination = states.length;
+
+    // For each state, stores the immediate predecessor state id.
+    final predecessors = List<int>.filled(states.length + 1, uninitialized);
+
+    // For each state, stores the total number of predecessors.
+    final distances = List<int>.filled(states.length + 1, uninitialized)
+      ..[Dfa.startState] = 0;
+
+    final queue = PriorityQueue<int>((state1, state2) {
+      final diff = distances[state1] - distances[state2];
+      if (diff != 0) return diff;
+      // When two different states have the same distance, we need to return a
+      // non-zero value, because [PriorityQueue.remove] uses only the result of
+      // this comparison to find the element to remove.
+      return state1 - state2;
+    });
+
+    /// If [predecessor] is on a shorter path to the start state, update [state].
+    void updateDistance(int state, int predecessor) {
+      if (distances[state] != uninitialized &&
+          distances[state] <= distances[predecessor] + 1) return;
+      queue.remove(state);
+      predecessors[state] = predecessor;
+      distances[state] = distances[predecessor] + 1;
+      queue.add(state);
+    }
+
+    queue.add(Dfa.startState);
+    while (queue.isNotEmpty) {
+      final current = queue.removeFirst();
+      if (current == destination) break;
+
+      for (final transition in states[current].transitions) {
+        updateDistance(transition.successor, current);
+      }
+      if (states[current].defaultTransition != Dfa.errorState) {
+        updateDistance(states[current].defaultTransition, current);
+      }
+    }
+    assert(distances[destination] != uninitialized,
+        'States ${Dfa.startState} and $destination are not connected');
+
+    final result = <DState>[];
+    for (var current = predecessors[destination];
+        true;
+        current = predecessors[current]) {
+      result.add(states[current]);
+      if (current == Dfa.startState) break;
+    }
+    return result.reversed.toList();
   }
 }
 

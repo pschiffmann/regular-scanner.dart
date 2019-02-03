@@ -25,15 +25,16 @@ library state_machines;
 
 import 'regular_scanner.dart';
 import 'src/state_machine/dfa.dart';
-import 'src/state_machine/explain_ambiguity.dart';
 import 'src/state_machine/nfa.dart';
 import 'src/state_machine/powerset_construction.dart' as impl;
+import 'src/state_machine/powerset_construction.dart'
+    show AmbiguousInputException;
 
 export 'src/range.dart' show Range;
 export 'src/state_machine/dfa.dart' show Dfa, DState, Transition;
-export 'src/state_machine/explain_ambiguity.dart' show AmbiguousInputException;
 export 'src/state_machine/nfa.dart' show Nfa, NState;
-export 'src/state_machine/powerset_construction.dart' show powersetConstruction;
+export 'src/state_machine/powerset_construction.dart'
+    show AmbiguousInputException;
 
 /// A state machine is a stateful object that processes a single value of an
 /// input sequence with each call to [moveNext]. This design allows us to use
