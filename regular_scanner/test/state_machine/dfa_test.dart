@@ -39,6 +39,7 @@ void main() {
       final s1 = DState([
         Transition.single(1, 2),
         Transition.single(10, 4),
+        Transition.single(11, 6),
       ]);
       final s2 = DState([
         Transition.single(2, 2),

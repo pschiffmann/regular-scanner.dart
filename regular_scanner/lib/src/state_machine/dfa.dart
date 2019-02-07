@@ -73,8 +73,14 @@ class Dfa<T> implements StateMachine<T> {
       return state1 - state2;
     });
 
-    /// If [predecessor] is on a shorter path to the start state, update [state].
+    /// If [predecessor] is on a shorter path to the start state, update
+    /// [state].
     void updateDistance(int state, int predecessor) {
+      if (state > destination) {
+        // [state] was discovered, but not yet resolved. Trying to access it in
+        // [states] or [distances] would yield an [IndexError].
+        return;
+      }
       if (distances[state] != uninitialized &&
           distances[state] <= distances[predecessor] + 1) return;
       queue.remove(state);
