@@ -7,7 +7,7 @@ final throwsAssertionError = throwsA(const TypeMatcher<AssertionError>());
 
 void main() {
   group('Dfa.findShortestPath', () {
-    test('handles empty `states`', () => expect(Dfa.findShortestPath([]), []));
+    test('handles empty `states`', () => expect(Dfa.findShortestPath([]), [0]));
 
     test(
         'throws AssertionError if start and destination are not connected',
@@ -51,7 +51,7 @@ void main() {
         Transition.single(6, 3),
         Transition.single(7, 1),
       ]);
-      expect(Dfa.findShortestPath([s0, s1, s2, s3, s4]), [s0, s1, s4, s3]);
+      expect(Dfa.findShortestPath([s0, s1, s2, s3, s4]), [0, 1, 4, 3, 5]);
     });
   });
 }

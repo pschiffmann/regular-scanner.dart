@@ -46,10 +46,13 @@ class Dfa<T> implements StateMachine<T> {
   /// Finds a shortest path in [states] from [Dfa.startState] to a state with id
   /// `states.length` using Dijkstras algorithm.
   ///
+  /// The returned list contains the states on the path, including
+  /// [Dfa.startState] and `states.length`. If [states] is empty, returns `[0]`.
+  ///
   /// Used by [AmbiguousInputException.toString] to generate ambiguous input
   /// sequences.
-  static List<DState<T>> findShortestPath<T>(List<DState<T>> states) {
-    if (states.isEmpty) return [];
+  static List<int> findShortestPath(List<DState> states) {
+    if (states.isEmpty) return [0];
 
     const uninitialized = -1;
     final destination = states.length;
@@ -95,14 +98,13 @@ class Dfa<T> implements StateMachine<T> {
     assert(distances[destination] != uninitialized,
         'States ${Dfa.startState} and $destination are not connected');
 
-    final result = <DState>[];
-    for (var current = predecessors[destination];
-        true;
-        current = predecessors[current]) {
-      result.add(states[current]);
-      if (current == Dfa.startState) break;
+    final path = [destination];
+    while (true) {
+      final predecessor = predecessors[path.last];
+      if (predecessor == uninitialized) break;
+      path.add(predecessor);
     }
-    return result.reversed.toList();
+    return path.reversed.toList();
   }
 }
 
