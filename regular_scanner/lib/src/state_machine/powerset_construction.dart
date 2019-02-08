@@ -1,187 +1,139 @@
-/// [constructDfa] implements the [powerset construction][1] algorithm to
-/// convert an NDA (built of [nfa.State]s) into a DFA (built of [dfa.State]s).
-///
-/// [1]: https://en.wikipedia.org/wiki/Powerset_construction
 library regular_scanner.src.powerset_construction;
 
 import 'dart:collection';
 
-import 'package:collection/collection.dart' hide binarySearch;
+import 'package:quiver/core.dart';
 
-import '../../regular_scanner.dart' show Regex;
 import '../range.dart';
-import '../regexp/ast.dart' as nfa;
-import 'dfa.dart' as dfa;
-import 'explain_ambiguity.dart';
+import 'dfa.dart';
+import 'nfa.dart';
 
-part 'closure.dart';
-part 'transitions.dart';
+/// Finds all transitive successors of [nfa], passes their powersets to
+/// [constructState], and stores the results in a list at the index of their
+/// state id.
+List<DState<D>> powersetConstruction<N, D>(
+    List<NState<N>> nfa, D Function(Set<N>) computeAccept) {
+  if (nfa.isEmpty) throw ArgumentError('`nfa` must not be empty');
 
-///
-List<dfa.State<T>> constructDfa<T extends Regex>(final List<nfa.Root> regexes) {
-  if (regexes.isEmpty) {
-    throw ArgumentError('regexes must not be empty');
-  }
+  final states = <DState<D>>[];
 
-  /// Maps NFA state closures to [dfa.State.id]s.
-  final stateIds = LinkedHashMap<List<nfa.State>, int>(
-      equals: closureEquality.equals, hashCode: closureEquality.hash);
+  /// For discovered powersets, stores the allocated state id.
+  final stateIds =
+      LinkedHashMap<Set<NState<N>>, int>(equals: compareSet, hashCode: hashSet);
 
-  /// All closures from [stateIds] that have not been processed yet.
-  final unresolved = Queue<MapEntry<List<nfa.State>, int>>();
+  /// All powersets from [stateIds] that have not been processed yet.
+  final unresolved = Queue<MapEntry<Set<NState<N>>, int>>();
 
-  /// Returns the [dfa.State.id] that belongs to [closure], allocating a new id
-  /// if this is the first time [closure] is looked up. Returns
-  /// [dfa.State.errorId] if [closure] is empty.
-  int lookupId(List<nfa.State> closure) => closure.isEmpty
-      ? dfa.State.errorId
-      : stateIds.putIfAbsent(closure, () {
+  /// Returns the id of the [DState] that represents [powerset], allocating a
+  /// new id if this is the first time [powerset] is looked up. Returns
+  /// [Dfa.errorState] if [powerset] is empty.
+  int lookupId(Set<NState<N>> powerset) => powerset.isEmpty
+      ? Dfa.errorState
+      : stateIds.putIfAbsent(powerset, () {
           final id = stateIds.length;
-          unresolved.add(MapEntry(closure, id));
+          unresolved.add(MapEntry(powerset, id));
           return id;
         });
 
-  /// The fully constructed states.
-  final states = <dfa.State<T>>[];
+  /// Initialize [unresolved].
+  lookupId(nfa.toSet());
 
-  // Initialize [queue] with a start state. Its closure doesn't need to be
-  // sorted because it is never looked up again.
-  lookupId(regexes.map((root) => NfaStartState(root)).toList());
   while (unresolved.isNotEmpty) {
     final current = unresolved.removeFirst();
-    final closure = current.key;
+    final powerset = current.key;
     final id = current.value;
 
     try {
-      final state = constructState<T>(closure, lookupId);
+      final state = constructState<N, D>(powerset, lookupId, computeAccept);
+
       assert(states.length == id);
       states.add(state);
-    } on AmbiguousRegexException catch (e) {
-      throw AmbiguousRegexException(e.regexes, findAmbiguousInput(states, id));
+    } on AmbiguousInputException catch (e) {
+      e.states = states;
+      rethrow;
     }
   }
 
   return states;
 }
 
-/// Constructs an [nfa.State] from [closure]. [lookupId] is used to resolve the
-/// ids of successors of this state.
-dfa.State<T> constructState<T extends Regex>(
-    List<nfa.State> closure, int Function(List<nfa.State>) lookupId) {
-  final transitions = <ConstructionTransition>[];
-  final negated = <nfa.CharacterSet>[];
-  final defaultTransition = constructionClosure();
-  for (final successor in closure.expand((state) => state.successors).toSet()) {
-    if (successor is nfa.Literal) {
-      reserveTransition(transitions, Range.single(successor.rune),
-          successor: successor);
-    } else if (successor is nfa.CharacterSet) {
-      if (!successor.negated) {
-        for (final runes in successor.runes) {
-          reserveTransition(transitions, runes, successor: successor);
-        }
-      } else {
-        // Reserve space for the area that will *not* have a transition on
-        // [successor].
-        for (final runes in successor.runes) {
-          reserveTransition(transitions, runes);
-        }
-        // Remember to add [successor] to all transitions *except*
-        // `successor.runes` later, but wait until [transitions] doesn't change
-        // anymore.
-        negated.add(successor);
+/// Constructs a single [DState] from [powerset] for the DFA built in
+/// [powersetConstruction].
+///
+/// [lookupId] maps powersets to state ids in the DFA.
+DState<D> constructState<N, D>(Set<NState<N>> powerset,
+    int Function(Set<NState<N>>) lookupId, D Function(Set<N>) computeAccept) {
+  final successors = powerset.expand((state) => state.successors).toSet();
+  final reservedRanges = <Range>[];
+  final defaultTransition = Set<NState<N>>();
+
+  // First pass: split [reservedRanges] into ranges, and fill
+  // [defaultTransition].
+  for (final successor in successors) {
+    switch (successor.guardType) {
+      case GuardType.value:
+        reserve(reservedRanges, Range.single(successor.guard as int));
+        if (successor.negated) defaultTransition.add(successor);
+        break;
+      case GuardType.range:
+        reserve(reservedRanges, successor.guard as Range);
+        if (successor.negated) defaultTransition.add(successor);
+        break;
+      case GuardType.wildcard:
+        defaultTransition.add(successor);
+        break;
+    }
+  }
+
+  // Second pass: Look up the successor powerset of each [reservedRanges] range.
+  final transitions = reservedRanges.map((range) {
+    final successorSet = Set<NState<N>>();
+    for (final successor in successors) {
+      switch (successor.guardType) {
+        case GuardType.value:
+          final guardContained = range.contains(successor.guard as int);
+          if (guardContained != successor.negated) successorSet.add(successor);
+          break;
+        case GuardType.range:
+          final guardContained = range.intersects(successor.guard as Range);
+          if (guardContained != successor.negated) successorSet.add(successor);
+          break;
+        case GuardType.wildcard:
+          successorSet.add(successor);
+          break;
       }
+    }
+    return Transition(range.min, range.max, lookupId(successorSet));
+  }).toList();
+
+  // Third pass: Merge adjacent transitions if they have the same successor.
+  for (var i = 0; i < transitions.length - 1;) {
+    final left = transitions[i];
+    final right = transitions[i + 1];
+    if (left.max + 1 == right.min && left.successor == right.successor) {
+      transitions
+        ..[i] = Transition(left.min, right.max, left.successor)
+        ..removeAt(i + 1);
     } else {
-      assert(successor is nfa.Dot);
-      defaultTransition.add(successor);
+      i++;
     }
   }
 
-  for (final transition in transitions) {
-    transition.closure.addAll(defaultTransition);
-
-    for (final successor in negated) {
-      if (!successor.runes.any((runes) => runes.intersects(transition))) {
-        transition.closure.add(successor);
-      }
-    }
-  }
-  defaultTransition.addAll(negated);
-
-  return dfa.State<T>(finalizeTransitions(transitions, lookupId),
-      defaultTransition: lookupId(defaultTransition.toList(growable: false)),
-      accept: highestPrecedenceRegex(closure
-          .where((state) => state.accepting)
-          .map((state) => state.root.regex)));
+  return DState(transitions,
+      defaultTransition: lookupId(defaultTransition),
+      accept: computeAccept(powerset
+          .where((s) => s.accept != null)
+          .map((s) => s.accept)
+          .toSet()));
 }
 
-/// Returns the element in [regexes] with the highest [Regex.precedence], or
-/// `null` if [regexes] is empty. Throws an [AmbiguousRegexException] if
-/// there is no single highest precedence regex.
-Regex highestPrecedenceRegex(Iterable<Regex> regexes) {
-  final highestPrecedence = Set<Regex>();
-  for (final regex in regexes) {
-    if (highestPrecedence.isEmpty) {
-      highestPrecedence.add(regex);
-      continue;
-    }
-    if (highestPrecedence.first.precedence == regex.precedence) {
-      highestPrecedence.add(regex);
-    } else if (regex.precedence > highestPrecedence.first.precedence) {
-      highestPrecedence
-        ..clear()
-        ..add(regex);
-    }
-  }
+bool compareSet(Set a, Set b) => a.length == b.length && a.containsAll(b);
+int hashSet(Set s) =>
+    hashObjects(s.map((e) => e.hashCode).toList(growable: false)..sort());
 
-  switch (highestPrecedence.length) {
-    case 0:
-      return null;
-    case 1:
-      return highestPrecedence.first;
-    default:
-      throw AmbiguousRegexException(highestPrecedence.toList(), null);
-  }
-}
+class AmbiguousInputException<T> implements Exception {
+  AmbiguousInputException(this.collisions);
 
-class NfaStartState implements nfa.State {
-  NfaStartState(this.root);
-
-  @override
-  final nfa.Root root;
-
-  @override
-  Iterable<nfa.State> get successors => root.first;
-
-  @override
-  bool get accepting => root.optional;
-
-  @override
-  nfa.Repetition get repetition =>
-      throw UnsupportedError('Undefined for this mock state');
-  @override
-  set repetition(nfa.Repetition repetition) =>
-      throw UnsupportedError('Undefined for this mock state');
-  @override
-  nfa.DelegatingExpression get parent =>
-      throw UnsupportedError('Undefined for this mock state');
-  @override
-  bool get optional => throw UnsupportedError('Undefined for this mock state');
-  @override
-  bool get repeat => throw UnsupportedError('Undefined for this mock state');
-  @override
-  int get id => throw UnsupportedError('Undefined for this mock state');
-}
-
-/// Thrown when multiple [Regex]es in a scanner match the same input and all
-/// have the same [Regex.precedence].
-class AmbiguousRegexException implements Exception {
-  AmbiguousRegexException(this.regexes, this.ambiguousPaths);
-
-  final List<Regex> regexes;
-  final List<dfa.State> ambiguousPaths;
-
-  @override
-  String toString() => 'The following regexes match the same input: '
-      '${regexes.join(", ")}';
+  final Iterable<T> collisions;
+  List<DState> states;
 }

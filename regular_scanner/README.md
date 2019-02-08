@@ -55,6 +55,8 @@ These escape sequences are recognized in both contexts.
  * `\t`, `\r`, `\n`, `\v`, `\f`, `\0` match the ASCII control characters tab, carriage return, linefeed, vertical tab, form-feed and NUL, respectively.
  * `\u{hhhhhh}` matches the Unicode code point U+`hhhhhh` (hexadecimal digits).
    _Omitting leading zeros is allowed._
+ * _TODO: `\x{hhhh}` matches the 16-bit integer `0xhhhh`.
+   This can be used to match [permanently unassigned](https://en.wikipedia.org/wiki/UTF-16#U+D800_to_U+DFFF) Unicode code points._
 
 _A `FormatException` is thrown on unrecognized escape sequences, and a `RangeError` on invalid Unicode code points._
 

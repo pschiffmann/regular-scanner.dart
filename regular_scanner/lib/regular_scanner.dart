@@ -2,9 +2,12 @@ library regular_scanner;
 
 import 'dart:math';
 
-import 'src/regexp/parser.dart' show parse;
-import 'src/state_machine/dfa.dart' show TableDrivenScanner;
-import 'src/state_machine/powerset_construction.dart' show constructDfa;
+import 'src/regexp/ast_to_nfa.dart';
+import 'src/regexp/explain_ambiguity.dart';
+import 'src/regexp/parser.dart';
+import 'state_machine.dart';
+
+export 'src/regexp/explain_ambiguity.dart' show AmbiguousRegexException;
 
 class Regex {
   const Regex(this.regularExpression, {this.precedence = 0})
@@ -20,7 +23,7 @@ class Regex {
 
 /// Returned by [Scanner.matchAsPrefix] to indicate which [regex] matched a
 /// given [input].
-class ScannerMatch<T extends Regex> implements Match {
+class ScannerMatch<T> implements Match {
   ScannerMatch(this.pattern, this.regex, this.input, this.start, this.end)
       : assert(0 <= start && start <= end && end <= input.length);
 
@@ -56,21 +59,24 @@ class ScannerMatch<T extends Regex> implements Match {
   int get groupCount => 0;
 }
 
-abstract class Scanner<T extends Regex> implements Pattern {
+abstract class Scanner<T> implements Pattern {
   /// Empty constructor allows extending this class, which can be used to
   /// inherit [allMatches].
   const Scanner();
 
-  factory Scanner.deterministic(Iterable<T> regexes) {
-    final regexesList = List<T>.unmodifiable(regexes);
-    if (regexesList.length != regexesList.toSet().length)
-      throw ArgumentError('regexes contains duplicates');
-    return TableDrivenScanner(regexesList,
-        constructDfa(regexesList.map(parse).toList(growable: false)));
+  ///
+  static Scanner<T> unambiguous<T extends Regex>(Iterable<T> regexes) {
+    final startStates = <NState<T>>[];
+    for (final regex in regexes) {
+      final ast = parse(regex.regularExpression);
+      startStates.add(astToNfa(ast, regex));
+    }
+    return StateMachineScanner(
+        powersetConstruction(startStates, highestPrecedenceRegex));
   }
 
-  /// The regexes that are matched by this scanner.
-  List<T> get regexes;
+  static Scanner<List<T>> ambiguous<T extends Regex>(Iterable<T> regexes) =>
+      null;
 
   @override
   Iterable<ScannerMatch<T>> allMatches(String string, [int start = 0]) sync* {
@@ -87,4 +93,33 @@ abstract class Scanner<T extends Regex> implements Pattern {
 
   @override
   ScannerMatch<T> matchAsPrefix(String string, [int start = 0]);
+}
+
+class StateMachineScanner<T> extends Scanner<T> {
+  const StateMachineScanner(this.states);
+
+  final List<DState<T>> states;
+
+  @override
+  ScannerMatch<T> matchAsPrefix(String string, [int start = 0]) {
+    RangeError.checkValueInInterval(start, 0, string.length, 'string');
+
+    final dfa = Dfa(states);
+    var accept = dfa.accept;
+    var end = start;
+
+    final runes = RuneIterator.at(string, start);
+    while (runes.moveNext()) {
+      dfa.moveNext(runes.current);
+      if (dfa.inErrorState) break;
+      if (dfa.accept != null) {
+        accept = dfa.accept;
+        end = runes.rawIndex + runes.currentSize;
+      }
+    }
+
+    return accept == null
+        ? null
+        : ScannerMatch(this, accept, string, start, end);
+  }
 }

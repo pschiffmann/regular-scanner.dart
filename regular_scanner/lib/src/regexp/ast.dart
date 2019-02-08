@@ -1,118 +1,144 @@
-import '../../regular_scanner.dart' show Regex;
+library regular_scanner.regex.ast;
+
 import '../range.dart';
 
-/// Each expression object represents a coherent, complete regular expression
-/// pattern. Each expression is either a [State] or a [DelegatingExpression].
-///
-/// Expressions are only mutable while the expression tree is still built during
-/// parsing. An expression can only be assigned to a [parent] once, and the
-/// [repetition] can only be changed until the expression has a [root].
 abstract class Expression {
-  Expression(this._repetition);
-
-  /// Trying to change this value after this expression has been sealed with a
-  /// [Root] will throw an [AssertionError].
-  Repetition get repetition => _repetition;
-  set repetition(Repetition repetition) {
-    assert(root == null, 'This expression tree has been sealed');
-    _repetition = repetition;
-  }
-
-  Repetition _repetition;
-
-  DelegatingExpression get parent => _parent;
-  DelegatingExpression _parent;
-
-  Root get root => parent?.root;
-
-  /// The index in [DelegatingExpression.children] where `this` is stored.
+  _Parent get parent => _parent;
+  _Parent _parent;
   int _parentIndex;
 
-  bool get optional => repetition.optional;
-  bool get repeat => repetition.repeat;
+  Iterable<AtomicExpression> get leafs;
+
+  /// Returns all recursive children of type [AtomicExpression] in this subtree
+  /// that can be reached with a single transition from a preceding expression.
+  Iterable<AtomicExpression> get first;
+
+  /// Returns all recursive children of this that can exit this subtree with a
+  /// single transition.
+  Iterable<AtomicExpression> get last;
+
+  bool get optional;
+}
+
+/// Marker interface.
+abstract class _Parent implements Expression {
+  /// Returns all successors of [child] that it can reach with a single
+  /// transition, including successors from [parent]. `child.parent` must be
+  /// `this`.
+  ///
+  /// May contain duplicates. For example, in the expression `(a+)+`, both the
+  /// `a+` [Literal] and the `()+` [Group] will wrap around and report `a` as a
+  /// successor of itself.
+  Iterable<AtomicExpression> successors(final Expression child);
 }
 
 ///
-abstract class State extends Expression {
-  State(Repetition repetition) : super(repetition);
+abstract class AtomicExpression extends Expression {
+  AtomicExpression(this._repetition);
 
-  /// Marks the final states in a [Regex]. If this state is entered during a
-  /// matching process, the input gets accepted. This attribute is set when the
-  /// expression tree is sealed by a [Root].
-  bool get accepting => _accepting;
+  final Repetition _repetition;
 
-  /// Each [State] in an expression has a unique id. This attribute is set when
-  /// the expression tree is sealed by a [Root].
-  int get id => _id;
-
-  /// These variables may only be set by [new Root].
-  bool _accepting = false;
-  int _id;
+  @override
+  Iterable<AtomicExpression> get leafs => [this];
+  @override
+  Iterable<AtomicExpression> get first => [this];
+  @override
+  Iterable<AtomicExpression> get last => [this];
 
   /// Returns all states that are reachable from this state with a single
   /// transition.
-  Iterable<State> get successors sync* {
-    if (repeat) {
-      yield this;
-    }
-    if (parent != null) {
-      yield* parent.siblings(this);
-    }
+  ///
+  /// May contain duplicates. For example, in the expression `(a+)+`, both the
+  /// `a+` [Literal] and the `()+` [Group] will wrap around and report `a` as a
+  /// successor of itself. Use [Iterable.toSet] on the result of this to filter
+  /// out duplicates.
+  Iterable<AtomicExpression> get successors sync* {
+    if (_repetition.repeat) yield this;
+    if (parent != null) yield* parent.successors(this);
   }
-}
-
-/// A literal matches exactly [rune].
-class Literal extends State {
-  Literal(this.rune, [Repetition repetition = Repetition.one])
-      : super(repetition);
-
-  final int rune;
 
   @override
-  String toString() => '${String.fromCharCode(rune)}$repetition';
+  bool get optional => _repetition.optional;
 }
 
-/// A dot matches any single character.
-class Dot extends State {
-  Dot([Repetition repetition = Repetition.one]) : super(repetition);
-
-  @override
-  String toString() => '.$repetition';
-}
-
-/// A character set represents patterns like `[A-Z]`.
-class CharacterSet extends State {
-  CharacterSet(this.runes, this.negated,
-      [Repetition repetition = Repetition.one])
+class Literal extends AtomicExpression {
+  Literal(this.codePoint, [Repetition repetition = Repetition.one])
       : super(repetition);
 
-  final List<Range> runes;
+  final int codePoint;
+
+  @override
+  String toString() => '${String.fromCharCode(codePoint)}$_repetition';
+}
+
+class CharacterSet extends AtomicExpression {
+  CharacterSet(this.codePoints,
+      {this.negated = false, Repetition repetition = Repetition.one})
+      : super(repetition);
+
+  final List<Range> codePoints;
   final bool negated;
 
   @override
   String toString() {
-    final contents = StringBuffer();
-    for (final range in runes) {
+    final contents = StringBuffer('[');
+    if (negated) contents.write('^');
+    for (final range in codePoints) {
       contents.writeCharCode(range.min);
-      if (range.max > range.min) {
+      if (range.min != range.max) {
         contents
           ..write('-')
           ..writeCharCode(range.max);
       }
     }
-    return negated ? '[^$contents]' : '[$contents]';
+    contents.write(']');
+    return contents.toString();
   }
 }
 
-///
-abstract class DelegatingExpression extends Expression {
-  DelegatingExpression(Iterable<Expression> children, Repetition repetition)
+class Wildcard extends AtomicExpression {
+  Wildcard([Repetition repetition = Repetition.one]) : super(repetition);
+
+  @override
+  String toString() => '.$_repetition';
+}
+
+class Group extends Expression implements _Parent {
+  Group(this.child, [this._repetition = Repetition.one]) {
+    assert(child._parent == null, '$child is already assigned to a parent');
+    child
+      .._parent = this
+      .._parentIndex = 0;
+  }
+
+  final Expression child;
+  final Repetition _repetition;
+
+  @override
+  Iterable<AtomicExpression> get leafs => child.leafs;
+  @override
+  Iterable<AtomicExpression> get first => child.first;
+  @override
+  Iterable<AtomicExpression> get last => child.last;
+
+  @override
+  Iterable<AtomicExpression> successors(Expression child) sync* {
+    assert(child == this.child);
+    if (_repetition.repeat) yield* child.first;
+    if (parent != null) yield* parent.successors(this);
+  }
+
+  @override
+  bool get optional => _repetition.optional || child.optional;
+
+  @override
+  String toString() => '($child)$_repetition';
+}
+
+abstract class CompositeExpression extends Expression implements _Parent {
+  CompositeExpression(Iterable<Expression> children)
       : children = List.unmodifiable(children),
-        assert(
-            children.isNotEmpty,
-            'DelegatingExpressions must have children because leafs of the '
-            'expression tree must always be States'),
-        super(repetition) {
+        assert(children.isNotEmpty) {
     for (var i = 0; i < this.children.length; i++) {
       assert(this.children[i]._parent == null,
           '${this.children[i]} is already assigned to a parent');
@@ -124,193 +150,72 @@ abstract class DelegatingExpression extends Expression {
 
   final List<Expression> children;
 
-  Iterable<State> get leafs sync* {
-    for (final child in children) {
-      if (child is State) {
-        yield child;
-      } else {
-        yield* (child as DelegatingExpression).leafs;
-      }
-    }
-  }
-
-  /// Returns all recursive children of type [State] in this subtree that can
-  /// be reached with a single transition from a preceding expression.
-  Iterable<State> get first;
-
-  /// Returns all recursive children of this that can exit this subtree with a
-  /// single transition.
-  Iterable<State> get last;
-
-  /// Returns all siblings of [child] that it can reach with a single
-  /// transition, including siblings from [parent]. [child] must be in
-  /// [children].
-  Iterable<State> siblings(final Expression child);
-
-  String get _childSeparator;
-
   @override
-  String toString() {
-    final body = children.join(_childSeparator);
-    return repetition == null ? body : '($body)$repetition';
-  }
+  Iterable<AtomicExpression> get leafs =>
+      children.expand((child) => child.leafs);
 }
 
 /// A sequence matches iff all of its children match in order. This represents
 /// the concatenation of e.g. _`a`, then `b`_ in the expression `ab`.
-class Sequence extends DelegatingExpression {
-  Sequence(Iterable<Expression> children,
-      [Repetition repetition = Repetition.one])
-      : super(children, repetition);
+class Sequence extends CompositeExpression {
+  Sequence(Iterable<Expression> children) : super(children);
 
   @override
-  bool get optional =>
-      super.optional || children.every((child) => child.optional);
-
-  @override
-  Iterable<State> get first sync* {
+  Iterable<AtomicExpression> get first sync* {
     for (final child in children) {
-      if (child is State) {
-        yield child;
-      } else {
-        yield* (child as DelegatingExpression).first;
-      }
+      yield* child.first;
       if (!child.optional) return;
     }
   }
 
   @override
-  Iterable<State> get last sync* {
+  Iterable<AtomicExpression> get last sync* {
     for (final child in children.reversed) {
-      if (child is State) {
-        yield child;
-      } else {
-        yield* (child as DelegatingExpression).last;
-      }
+      yield* child.last;
       if (!child.optional) return;
     }
   }
 
   @override
-  Iterable<State> siblings(final Expression child) sync* {
+  Iterable<AtomicExpression> successors(Expression child) sync* {
     assert(child.parent == this);
-    for (final successor in children.skip(child._parentIndex + 1)) {
-      if (successor is State) {
-        yield successor;
-      } else {
-        yield* (successor as DelegatingExpression).first;
-      }
-      if (!successor.optional) return;
+    for (var i = child._parentIndex + 1; i < children.length; i++) {
+      yield* children[i].first;
+      if (!children[i].optional) return;
     }
-
-    if (parent != null) yield* parent.siblings(this);
-
-    if (!repeat) return;
-    for (final successor in first) {
-      yield successor;
-      if (successor == child) return;
-    }
+    if (parent != null) yield* parent.successors(this);
   }
 
   @override
-  String get _childSeparator => '';
+  bool get optional => children.every((child) => child.optional);
+
+  @override
+  String toString() => children.join('');
 }
 
 /// An alternation matches iff any of its children matches. This represents e.g.
 /// _`a` or `b` or_ in the expression `a|b`.
-class Alternation extends DelegatingExpression {
-  Alternation(Iterable<Expression> children,
-      [Repetition repetition = Repetition.one])
-      : super(children, repetition);
+class Alternation extends CompositeExpression {
+  Alternation(Iterable<Expression> children) : super(children);
 
   @override
-  bool get optional =>
-      super.optional || children.any((child) => child.optional);
+  Iterable<AtomicExpression> get first =>
+      children.expand((child) => child.first);
 
   @override
-  Iterable<State> get first sync* {
-    for (final child in children) {
-      if (child is State) {
-        yield child;
-      } else {
-        yield* (child as DelegatingExpression).first;
-      }
-    }
-  }
+  Iterable<AtomicExpression> get last => children.expand((child) => child.last);
 
   @override
-  Iterable<State> get last sync* {
-    for (final child in children) {
-      if (child is State) {
-        yield child;
-      } else {
-        yield* (child as DelegatingExpression).last;
-      }
-    }
-  }
-
-  @override
-  Iterable<State> siblings(final Expression child) sync* {
+  Iterable<AtomicExpression> successors(final Expression child) {
     assert(child.parent == this);
-    if (parent != null) yield* parent.siblings(this);
-
-    if (!repeat) return;
-    yield* first;
+    return parent != null ? parent.successors(this) : [];
   }
 
   @override
-  String get _childSeparator => '|';
-}
-
-/// Seals an [Expression] tree. A [Root] can't have a parent, and since children
-/// can't be removed from a [DelegatingExpression], a root expressions and its
-/// children are effectively immutable.
-///
-/// An expression root has only a single [child], and stores a reference to the
-/// [regex] it was parsed from.
-class Root extends DelegatingExpression {
-  Root(Expression child, this.regex) : super([child], Repetition.one) {
-    for (final child in last) {
-      child._accepting = true;
-    }
-
-    var id = 1;
-    for (final state in leafs) {
-      state._id = id++;
-    }
-  }
+  bool get optional => children.any((child) => child.optional);
 
   @override
-  bool get optional => child.optional;
-
-  @override
-  DelegatingExpression get _parent =>
-      throw UnsupportedError("Root can't have a parent");
-  @override
-  set _parent(DelegatingExpression _) =>
-      throw UnsupportedError("Root can't have a parent");
-  @override
-  Root get root => this;
-
-  Expression get child => children.first;
-  final Regex regex;
-
-  @override
-  Iterable<State> get first =>
-      child is State ? [child] : (child as DelegatingExpression).first;
-
-  @override
-  Iterable<State> get last =>
-      child is State ? [child] : (child as DelegatingExpression).last;
-
-  @override
-  Iterable<State> siblings(final Expression child) => const [];
-
-  @override
-  String get _childSeparator => throw UnimplementedError('Unused');
-
-  @override
-  String toString() => child.toString();
+  String toString() => children.join('|');
 }
 
 /// Pseudo-enum that represents the possible repetition specifiers `+`, `?` and

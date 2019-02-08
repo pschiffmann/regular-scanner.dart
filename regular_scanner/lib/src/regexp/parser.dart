@@ -1,64 +1,56 @@
-import 'package:charcode/ascii.dart';
 import 'package:meta/meta.dart' hide literal;
 
-import '../../regular_scanner.dart' show Regex;
 import '../range.dart';
 import 'ast.dart';
 import 'scanner.dart';
+import 'token.dart';
 
 /// Parses [regex] into an [Expression] tree. Throws [FormatException] on
 /// invalid regexes, and [RangeError] on unpaired surrogates in [regex].
-Root parse(Regex regex) {
-  final context = TokenIterator(regex.regularExpression);
+Expression parse(String regex) {
+  final context = TokenIterator(regex);
   if (!context.moveNext()) {
-    throw FormatException('Empty regular expression', regex.regularExpression);
+    throw const FormatException('Empty regular expression');
   }
   final expression = parseUnknown(context, expectGroupEnd: false);
   assert(context.current == null);
 
-  return Root(expression, regex);
+  return expression;
 }
 
-Expression /* Literal|Sequence */ parseLiteral(TokenIterator context) {
+Literal parseLiteral(TokenIterator context) {
   assert(context.current == literal);
-  return context.literalIsSingleCodeUnit
-      ? Literal(context.codeUnit, parseRepetiton(context..moveNext()))
-      : Sequence(context.codeUnits.map((int codeUnit) => Literal(codeUnit)),
-          parseRepetiton(context..moveNext()));
+  return Literal(context.codePoint, parseRepetiton(context..moveNext()));
 }
 
-Dot parseDot(TokenIterator context) {
+Wildcard parseWildcard(TokenIterator context) {
   assert(context.current == dot);
-  return Dot(parseRepetiton(context..moveNext()));
+  return Wildcard(parseRepetiton(context..moveNext()));
 }
 
-/// If the current token is a [repetition], returns the according repetition
+/// If the current token is a repetition, returns the according [Repetition]
 /// constant and advances the token iterator. Else, returns [Repetition.one].
 Repetition parseRepetiton(TokenIterator context) {
-  if (context.current != repetition) {
-    return Repetition.one;
-  }
-  final char = context.codeUnit;
-  context.moveNext();
-  switch (char) {
-    case $plus:
+  switch (context.current) {
+    case repetitionPlus:
+      context.moveNext();
       return Repetition.oneOrMore;
-    case $question:
-      return Repetition.zeroOrOne;
-    case $asterisk:
+    case repetitionStar:
+      context.moveNext();
       return Repetition.zeroOrMore;
+    case repetitionQuestionmark:
+      context.moveNext();
+      return Repetition.zeroOrOne;
     default:
-      throw UnimplementedError('This case is unreachable');
+      return Repetition.one;
   }
 }
 
 /// Parses an unknown sequence of expressions until [context] is exhausted.
-/// Creates [Sequence]s and [Alternation]s as needed, or returns a [State] if
-/// only a single state pattern was found.
+/// Creates [Sequence]s and [Alternation]s as needed.
 ///
 /// If [expectGroupEnd] is `true`, stops parsing when reaching the first
-/// [groupEnd]. Else, throws a [FormatException] when finding that
-/// character.
+/// [groupEnd]. Else, throws a [FormatException] when finding that token.
 Expression parseUnknown(TokenIterator context,
     {@required bool expectGroupEnd}) {
   assert(context.current != null);
@@ -90,9 +82,11 @@ Expression parseUnknown(TokenIterator context,
         sequence.add(parseLiteral(context));
         break;
       case dot:
-        sequence.add(parseDot(context));
+        sequence.add(parseWildcard(context));
         break;
-      case repetition:
+      case repetitionPlus:
+      case repetitionStar:
+      case repetitionQuestionmark:
         context.error('Unescaped repetition character');
         break;
       case choice:
@@ -113,10 +107,6 @@ Expression parseUnknown(TokenIterator context,
       case characterSetEnd:
         context.error('Unbalanced `]`');
         break;
-      case characterSetAlias:
-        throw UnimplementedError(
-            'Currently not supported. This will be implemented as part of '
-            'https://github.com/pschiffmann/regular-scanner.dart/issues/5');
       default:
         throw UnimplementedError('This case is unreachable');
     }
@@ -128,20 +118,20 @@ Expression parseUnknown(TokenIterator context,
       : Alternation(alternatives);
 }
 
-Expression parseGroup(TokenIterator context) {
+Group parseGroup(TokenIterator context) {
   assert(context.current == groupStart);
 
   final startIndex = context.index;
   context.moveNext(onRegexEnd: 'Unclosed `(`');
 
-  final result = parseUnknown(context, expectGroupEnd: true);
+  final child = parseUnknown(context, expectGroupEnd: true);
 
   if (context.current != groupEnd) {
     context.error('Unclosed `(`', startIndex);
   }
   context.moveNext();
 
-  return result..repetition |= parseRepetiton(context);
+  return Group(child, parseRepetiton(context));
 }
 
 CharacterSet parseCharacterSet(TokenIterator context) {
@@ -154,7 +144,7 @@ CharacterSet parseCharacterSet(TokenIterator context) {
   final negated = context.current == negation;
   if (negated) context.moveNext();
 
-  /// Returns [TokenIterator.codeUnit] if the current token is a [literal], and
+  /// Returns [TokenIterator.codePoint] if the current token is a [literal], and
   /// advances the iterator by one element. Else, throws a [FormatException].
   int readLiteralAdvance() {
     if (context.current == null) {
@@ -162,11 +152,8 @@ CharacterSet parseCharacterSet(TokenIterator context) {
     } else if (context.current != literal) {
       context.error('The special characters `[]^-\` must always be escaped '
           'inside character groups');
-    } else if (!context.literalIsSingleCodeUnit) {
-      context.error('Surrogate characters are currently not supported: '
-          'https://github.com/pschiffmann/regular-scanner.dart/issues/7');
     }
-    final codeUnit = context.codeUnit;
+    final codeUnit = context.codePoint;
     context.moveNext();
     return codeUnit;
   }
@@ -184,5 +171,6 @@ CharacterSet parseCharacterSet(TokenIterator context) {
   context
     ..insideCharacterSet = false
     ..moveNext();
-  return CharacterSet(ranges, negated)..repetition = parseRepetiton(context);
+  return CharacterSet(ranges,
+      negated: negated, repetition: parseRepetiton(context));
 }
