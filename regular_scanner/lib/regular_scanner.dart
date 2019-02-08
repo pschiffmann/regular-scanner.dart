@@ -3,8 +3,11 @@ library regular_scanner;
 import 'dart:math';
 
 import 'src/regexp/ast_to_nfa.dart';
+import 'src/regexp/explain_ambiguity.dart';
 import 'src/regexp/parser.dart';
 import 'state_machine.dart';
+
+export 'src/regexp/explain_ambiguity.dart' show AmbiguousRegexException;
 
 class Regex {
   const Regex(this.regularExpression, {this.precedence = 0})
@@ -68,18 +71,12 @@ abstract class Scanner<T> implements Pattern {
       final ast = parse(regex.regularExpression);
       startStates.add(astToNfa(ast, regex));
     }
-    return StateMachineScanner(powersetConstruction(startStates));
+    return StateMachineScanner(
+        powersetConstruction(startStates, highestPrecedenceRegex));
   }
 
   static Scanner<List<T>> ambiguous<T extends Regex>(Iterable<T> regexes) =>
       null;
-
-  factory Scanner.deterministic(Iterable<T> regexes) {
-    final regexesList = List<T>.unmodifiable(regexes);
-    if (regexesList.length != regexesList.toSet().length)
-      throw ArgumentError('regexes contains duplicates');
-    return null;
-  }
 
   @override
   Iterable<ScannerMatch<T>> allMatches(String string, [int start = 0]) sync* {

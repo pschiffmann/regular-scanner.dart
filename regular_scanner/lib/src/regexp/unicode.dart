@@ -5,6 +5,7 @@ import '../range.dart';
 const unicodeRange = Range(0, 0x10FFFF);
 const permanentlyUnassigned = Range(0xD800, 0xDFFF);
 
+/// http://unicode.org/glossary/#unicode_scalar_value
 bool isValidCodePoint(int codePoint) =>
     unicodeRange.contains(codePoint) &&
     !permanentlyUnassigned.contains(codePoint);
@@ -23,3 +24,6 @@ int decodeSurrogatePair(int leadSurrogate, int trailSurrogate) {
   const surrogateOffset = 0x10000 - (0xD800 << 10) - 0xDC00;
   return (leadSurrogate << 10) + trailSurrogate + surrogateOffset;
 }
+
+bool isPrintableAsciiCharacter(int codePoint) =>
+    const Range(0x20, 0x7E).contains(codePoint);
