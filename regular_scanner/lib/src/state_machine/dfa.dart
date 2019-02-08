@@ -126,6 +126,15 @@ class DState<T> {
 
   /// If this state is reached, the input matches [accept].
   final T accept;
+
+  @override
+  String toString() =>
+      'DState<$T>(${transitions.join(', ')}' +
+      (defaultTransition == Dfa.errorState
+          ? ''
+          : ', defaultTransition: $defaultTransition') +
+      (accept == null ? '' : ', accept: $accept') +
+      ')';
 }
 
 class Transition extends Range {
@@ -136,5 +145,5 @@ class Transition extends Range {
   final int successor;
 
   @override
-  String toString() => '${super.toString()} -> successor';
+  String toString() => '${super.toString()} -> $successor';
 }
