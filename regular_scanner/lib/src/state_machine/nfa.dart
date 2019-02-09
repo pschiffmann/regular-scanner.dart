@@ -45,7 +45,7 @@ class Nfa<T> implements StateMachine<Set<T>> {
   }
 
   @override
-  Nfa<T> copy({bool reset: true}) {
+  Nfa<T> copy({bool reset = true}) {
     final result = Nfa._copy(_startStates);
     if (!reset) {
       result

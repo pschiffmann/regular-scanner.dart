@@ -17,7 +17,7 @@ final commonEscapeSequences = [
 
 /// Instantiates a [TokenIterator] with all [Token.lexeme]s of [tokens] as input
 /// and tests that the iterator recognizes the expected types and code points.
-void expectTokens(List<Token> tokens, {bool inCharacterSetContext: false}) {
+void expectTokens(List<Token> tokens, {bool inCharacterSetContext = false}) {
   final it = TokenIterator(tokens.map((t) => t.lexeme).join(''))
     ..insideCharacterSet = inCharacterSetContext;
   expect(it.current, isNull);
@@ -41,7 +41,7 @@ void expectTokens(List<Token> tokens, {bool inCharacterSetContext: false}) {
 /// Checks that [TokenIterator.moveNext] throws when parsing every element in
 /// [invalidInputs].
 void expectThrows(List<String> invalidInputs,
-    {bool inCharacterSetContext: false}) {
+    {bool inCharacterSetContext = false}) {
   for (final input in invalidInputs) {
     final it = TokenIterator(input)..insideCharacterSet = inCharacterSetContext;
     expect(it.moveNext, throwsFormatException);

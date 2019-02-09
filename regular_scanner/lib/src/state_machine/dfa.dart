@@ -37,7 +37,7 @@ class Dfa<T> implements StateMachine<T> {
   void reset() => _current = startState;
 
   @override
-  StateMachine<T> copy({bool reset: true}) {
+  StateMachine<T> copy({bool reset = true}) {
     final result = Dfa(states);
     if (!reset) result._current = _current;
     return result;
@@ -121,7 +121,8 @@ class DState<T> {
   final List<Transition> transitions;
 
   /// The transition that should be taken if the read character is not in
-  /// [transitions]. This value is never `null` and defaults to [Dfa.errorState].
+  /// [transitions]. This value is never `null` and defaults to
+  /// [Dfa.errorState].
   final int defaultTransition;
 
   /// If this state is reached, the input matches [accept].

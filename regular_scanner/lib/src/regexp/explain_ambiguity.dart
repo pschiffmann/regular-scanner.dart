@@ -121,8 +121,9 @@ MapEntry<String, int> selectBestCharacter(Range codePoints) {
 
   if (codePoints.contains($space)) return const MapEntry('␣', 3);
 
-  if (controlCharacters.intersects(codePoints))
+  if (controlCharacters.intersects(codePoints)) {
     return MapEntry(s(0x2400 + i(controlCharacters)), 4);
+  }
   if (controlCharacters.contains($del)) return const MapEntry('␡', 4);
 
   return MapEntry('U+${codePoints.min.toRadixString(16).padLeft(4, "0")}', 5);

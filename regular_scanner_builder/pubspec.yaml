@@ -17,3 +17,6 @@ dependencies:
     path: ../regular_scanner
 dev_dependencies:
   test: ^1.0.0
+  pedantic_pschiffmann:
+    git:
+      https://github.com/pschiffmann/pedantic-pschiffmann.dart

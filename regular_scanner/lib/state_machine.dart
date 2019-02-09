@@ -68,7 +68,7 @@ abstract class StateMachine<T> {
   ///
   /// If [reset] is `true`, the returned object will be in the start state;
   /// otherwise, it will be in the same state as this.
-  StateMachine<T> copy({bool reset: true});
+  StateMachine<T> copy({bool reset = true});
 }
 
 /// Constructs an unambiguous deterministic state machine from a
