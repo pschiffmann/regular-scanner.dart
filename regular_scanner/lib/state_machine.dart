@@ -77,7 +77,7 @@ abstract class StateMachine<T> {
 /// For each [DState], [resolveAccept] is called to determine which
 /// [NState.accept] value is used as [DState.accept]. The default is to throw an
 /// [AmbiguousInputException] when more than one is found.
-List<DState<T>> powersetConstruction<T>(List<NState<T>> nfa,
+Dfa<T> powersetConstruction<T>(List<NState<T>> nfa,
         [T Function(Set<T>) resolveAccept]) =>
     impl.powersetConstruction<T, T>(
         nfa,
@@ -101,7 +101,7 @@ List<DState<T>> powersetConstruction<T>(List<NState<T>> nfa,
 /// resolved DFA state. This function can be used to filter out certain values,
 /// or to arrange them in a desired order. The default is to return all values
 /// in an undefined order.
-List<DState<List<T>>> powersetConstructionAmbiguous<T>(List<NState<T>> nfa,
+Dfa<List<T>> powersetConstructionAmbiguous<T>(List<NState<T>> nfa,
         [List<T> Function(Set<T>) preprocessAccept]) =>
     impl.powersetConstruction<T, List<T>>(
         nfa, preprocessAccept ?? (accept) => accept.toList());

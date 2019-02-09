@@ -34,7 +34,6 @@ class AmbiguousRegexException<T extends Regex>
 
   @override
   String toString() =>
-      // ignore: prefer_interpolation_to_compose_strings
       'The patterns ${collisions.join(", ")} all match the ' +
       (states.isEmpty
           ? 'empty string'

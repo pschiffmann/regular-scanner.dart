@@ -11,7 +11,7 @@ import 'nfa.dart';
 /// Finds all transitive successors of [nfa], passes their powersets to
 /// [constructState], and stores the results in a list at the index of their
 /// state id.
-List<DState<D>> powersetConstruction<N, D>(
+Dfa<D> powersetConstruction<N, D>(
     List<NState<N>> nfa, D Function(Set<N>) computeAccept) {
   if (nfa.isEmpty) throw ArgumentError('`nfa` must not be empty');
 
@@ -54,7 +54,7 @@ List<DState<D>> powersetConstruction<N, D>(
     }
   }
 
-  return states;
+  return Dfa(states);
 }
 
 /// Constructs a single [DState] from [powerset] for the DFA built in

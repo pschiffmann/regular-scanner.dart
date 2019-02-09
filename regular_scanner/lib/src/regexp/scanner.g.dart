@@ -6,7 +6,7 @@ part of 'scanner.dart';
 // TableDrivenScannerGenerator
 // **************************************************************************
 
-const _$defaultContextScanner = StateMachineScanner<TokenType>([
+const _$defaultContextScanner = BuiltScanner<TokenType>([
   DState([
     Transition(40, 40, 1),
     Transition(41, 41, 2),
@@ -93,7 +93,7 @@ const _$defaultContextScanner = StateMachineScanner<TokenType>([
   DState([], defaultTransition: -1, accept: _unicodeEscape),
 ]);
 
-const _$characterSetScanner = StateMachineScanner<TokenType>([
+const _$characterSetScanner = BuiltScanner<TokenType>([
   DState([
     Transition(45, 45, 1),
     Transition(91, 91, 2),

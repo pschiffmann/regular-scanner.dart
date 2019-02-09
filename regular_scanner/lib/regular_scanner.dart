@@ -5,9 +5,11 @@ import 'dart:math';
 import 'src/regexp/ast_to_nfa.dart';
 import 'src/regexp/explain_ambiguity.dart';
 import 'src/regexp/parser.dart';
+import 'src/regexp/state_machine_scanner.dart';
 import 'state_machine.dart';
 
 export 'src/regexp/explain_ambiguity.dart' show AmbiguousRegexException;
+export 'src/regexp/state_machine_scanner.dart' show StateMachineScanner;
 
 class Regex {
   const Regex(this.regularExpression, {this.precedence = 0})
@@ -93,33 +95,4 @@ abstract class Scanner<T> implements Pattern {
 
   @override
   ScannerMatch<T> matchAsPrefix(String string, [int start = 0]);
-}
-
-class StateMachineScanner<T> extends Scanner<T> {
-  const StateMachineScanner(this.states);
-
-  final List<DState<T>> states;
-
-  @override
-  ScannerMatch<T> matchAsPrefix(String string, [int start = 0]) {
-    RangeError.checkValueInInterval(start, 0, string.length, 'string');
-
-    final dfa = Dfa(states);
-    var accept = dfa.accept;
-    var end = start;
-
-    final runes = RuneIterator.at(string, start);
-    while (runes.moveNext()) {
-      dfa.moveNext(runes.current);
-      if (dfa.inErrorState) break;
-      if (dfa.accept != null) {
-        accept = dfa.accept;
-        end = runes.rawIndex + runes.currentSize;
-      }
-    }
-
-    return accept == null
-        ? null
-        : ScannerMatch(this, accept, string, start, end);
-  }
 }
