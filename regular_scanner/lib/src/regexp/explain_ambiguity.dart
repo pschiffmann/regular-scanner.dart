@@ -28,6 +28,24 @@ T highestPrecedenceRegex<T extends Regex>(Set<T> regexes) {
       : throw AmbiguousRegexException(highestPrecedence);
 }
 
+List<T> orderByPrecedence<T extends Regex>(Set<T> regexes) {
+  if (regexes.isEmpty) return null;
+
+  final result = regexes.toList()
+    ..sort((r1, r2) => r2.precedence - r1.precedence);
+
+  for (var i = 0; i < result.length - 1; i++) {
+    if (result[i].precedence == result[i + 1].precedence) {
+      throw AmbiguousRegexException(result
+          .skip(i)
+          .takeWhile((r) => r.precedence == result[i].precedence)
+          .toList());
+    }
+  }
+
+  return result;
+}
+
 class AmbiguousRegexException<T extends Regex>
     extends AmbiguousInputException<T> {
   AmbiguousRegexException(Iterable<T> collisions) : super(collisions);

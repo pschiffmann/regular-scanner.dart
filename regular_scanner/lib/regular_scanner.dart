@@ -66,20 +66,6 @@ abstract class Scanner<T> implements Pattern {
   /// inherit [allMatches].
   const Scanner();
 
-  ///
-  static Scanner<T> unambiguous<T extends Regex>(Iterable<T> regexes) {
-    final startStates = <NState<T>>[];
-    for (final regex in regexes) {
-      final ast = parse(regex.regularExpression);
-      startStates.add(astToNfa(ast, regex));
-    }
-    return StateMachineScanner(
-        powersetConstruction(startStates, highestPrecedenceRegex));
-  }
-
-  static Scanner<List<T>> ambiguous<T extends Regex>(Iterable<T> regexes) =>
-      null;
-
   @override
   Iterable<ScannerMatch<T>> allMatches(String string, [int start = 0]) sync* {
     while (start < string.length) {
@@ -95,4 +81,26 @@ abstract class Scanner<T> implements Pattern {
 
   @override
   ScannerMatch<T> matchAsPrefix(String string, [int start = 0]);
+
+  ///
+  static Scanner<T> unambiguous<T extends Regex>(Iterable<T> regexes) =>
+      StateMachineScanner(
+          powersetConstruction(_compile(regexes), highestPrecedenceRegex));
+
+  static Scanner<List<T>> ambiguous<T extends Regex>(Iterable<T> regexes) =>
+      StateMachineScanner(
+          powersetConstructionAmbiguous(_compile(regexes), orderByPrecedence));
+
+  static Scanner<Set<T>> nondeterministic<T extends Regex>(
+          Iterable<T> regexes) =>
+      StateMachineScanner(Nfa(_compile(regexes)));
+}
+
+List<NState<T>> _compile<T extends Regex>(Iterable<T> regexes) {
+  final startStates = <NState<T>>[];
+  for (final regex in regexes) {
+    final ast = parse(regex.regularExpression);
+    startStates.add(astToNfa(ast, regex));
+  }
+  return startStates;
 }
