@@ -12,15 +12,14 @@ export 'src/regexp/explain_ambiguity.dart' show AmbiguousRegexException;
 export 'src/regexp/state_machine_scanner.dart' show StateMachineScanner;
 
 class Regex {
-  const Regex(this.regularExpression, {this.precedence = 0})
-      : assert(precedence >= 0);
+  const Regex(this.pattern, {this.precedence = 0}) : assert(precedence >= 0);
 
-  final String regularExpression;
+  final String pattern;
 
   final int precedence;
 
   @override
-  String toString() => '/$regularExpression/';
+  String toString() => '/$pattern/';
 }
 
 /// Returned by [Scanner.matchAsPrefix] to indicate which [regex] matched a
@@ -101,7 +100,7 @@ abstract class Scanner<T> implements Pattern {
 List<NState<T>> _compile<T extends Regex>(Iterable<T> regexes) {
   final startStates = <NState<T>>[];
   for (final regex in regexes) {
-    final ast = parse(regex.regularExpression);
+    final ast = parse(regex.pattern);
     startStates.add(astToNfa(ast, regex));
   }
   return startStates;
