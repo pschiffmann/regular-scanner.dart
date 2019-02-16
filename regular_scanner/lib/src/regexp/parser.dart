@@ -1,5 +1,3 @@
-import 'package:meta/meta.dart' hide literal;
-
 import '../range.dart';
 import 'ast.dart';
 import 'scanner.dart';
@@ -12,8 +10,11 @@ Expression parse(String regex) {
   if (!context.moveNext()) {
     throw const FormatException('Empty regular expression');
   }
-  final expression = parseUnknown(context, expectGroupEnd: false);
-  assert(context.current == null);
+  final expression = parseUnknown(context);
+  if (context.current != null) {
+    assert(context.current == groupEnd);
+    context.error('Unbalanced `)`');
+  }
 
   return expression;
 }
@@ -46,13 +47,10 @@ Repetition parseRepetiton(TokenIterator context) {
   }
 }
 
-/// Parses an unknown sequence of expressions until [context] is exhausted.
-/// Creates [Sequence]s and [Alternation]s as needed.
-///
-/// If [expectGroupEnd] is `true`, stops parsing when reaching the first
-/// [groupEnd]. Else, throws a [FormatException] when finding that token.
-Expression parseUnknown(TokenIterator context,
-    {@required bool expectGroupEnd}) {
+/// Parses an unknown sequence of expressions until [context] is exhausted or an
+/// unbalanced [groupEnd] is found. Creates [Sequence]s and [Alternation]s as
+/// needed.
+Expression parseUnknown(TokenIterator context) {
   assert(context.current != null);
 
   // All fully parsed [choice]-separated expressions found so far.
@@ -97,9 +95,6 @@ Expression parseUnknown(TokenIterator context,
         sequence.add(parseGroup(context));
         break;
       case groupEnd:
-        if (!expectGroupEnd) {
-          context.error('Unbalanced `)`');
-        }
         break loop;
       case characterSetStart:
         sequence.add(parseCharacterSet(context));
@@ -124,7 +119,7 @@ Group parseGroup(TokenIterator context) {
   final startIndex = context.index;
   context.moveNext(onRegexEnd: 'Unclosed `(`');
 
-  final child = parseUnknown(context, expectGroupEnd: true);
+  final child = parseUnknown(context);
 
   if (context.current != groupEnd) {
     context.error('Unclosed `(`', startIndex);
