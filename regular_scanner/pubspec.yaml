@@ -1,5 +1,6 @@
 name: regular_scanner
-description: A `Scanner` class that matches an input string against multiple regular expressions.
+description: Compile time constant, ambiguity-checked regular expressions, and state machine-based general purpose pattern matching.
+
 version: 0.1.0
 environment:
   sdk: '>=2.0.0 <3.0.0'
