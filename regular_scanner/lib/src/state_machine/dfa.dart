@@ -37,7 +37,7 @@ class Dfa<T> implements StateMachine<T> {
   void reset() => _current = startState;
 
   @override
-  StateMachine<T> copy({bool reset = true}) {
+  Dfa<T> copy({bool reset = true}) {
     final result = Dfa(states);
     if (!reset) result._current = _current;
     return result;

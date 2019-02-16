@@ -1,10 +1,11 @@
 import '../../regular_scanner.dart';
 import '../../state_machine.dart';
 
-abstract class StateMachineScannerBase<T> extends Scanner<T> {
+abstract class StateMachineScannerBase<T, S extends StateMachine<T>>
+    extends Scanner<T> {
   const StateMachineScannerBase();
 
-  StateMachine<T> get stateMachine;
+  S get stateMachine;
 
   @override
   ScannerMatch<T> matchAsPrefix(String string, [int start = 0]) {
@@ -30,16 +31,17 @@ abstract class StateMachineScannerBase<T> extends Scanner<T> {
   }
 }
 
-class StateMachineScanner<T> extends StateMachineScannerBase<T> {
+class StateMachineScanner<T, S extends StateMachine<T>>
+    extends StateMachineScannerBase<T, S> {
   StateMachineScanner(this._stateMachine);
 
-  final StateMachine<T> _stateMachine;
+  final S _stateMachine;
 
   @override
-  StateMachine<T> get stateMachine => _stateMachine.copy();
+  S get stateMachine => _stateMachine.copy() as S;
 }
 
-class BuiltScanner<T> extends StateMachineScannerBase<T> {
+class BuiltScanner<T> extends StateMachineScannerBase<T, Dfa<T>> {
   const BuiltScanner(this.states);
 
   final List<DState<T>> states;

@@ -83,16 +83,18 @@ abstract class Scanner<T> implements Pattern {
   ScannerMatch<T> matchAsPrefix(String string, [int start = 0]);
 
   ///
-  static Scanner<T> unambiguous<T extends Regex>(Iterable<T> regexes) =>
+  static StateMachineScanner<R, Dfa<R>> unambiguous<R extends Regex>(
+          Iterable<R> regexes) =>
       StateMachineScanner(
           powersetConstruction(_compile(regexes), highestPrecedenceRegex));
 
-  static Scanner<List<T>> ambiguous<T extends Regex>(Iterable<T> regexes) =>
+  static StateMachineScanner<List<R>, Dfa<List<R>>> ambiguous<R extends Regex>(
+          Iterable<R> regexes) =>
       StateMachineScanner(
           powersetConstructionAmbiguous(_compile(regexes), orderByPrecedence));
 
-  static Scanner<Set<T>> nondeterministic<T extends Regex>(
-          Iterable<T> regexes) =>
+  static StateMachineScanner<Set<R>, Nfa<R>> nondeterministic<R extends Regex>(
+          Iterable<R> regexes) =>
       StateMachineScanner(Nfa(_compile(regexes)));
 }
 
