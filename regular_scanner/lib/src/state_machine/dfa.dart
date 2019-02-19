@@ -3,13 +3,25 @@ import 'package:collection/collection.dart' show PriorityQueue;
 import '../../state_machine.dart';
 import '../range.dart';
 
-// AmbiguousDfa: Dfa<List<T>>
+/// A deterministic finite automaton.
+///
+/// In general, you shouldn't instantiate this class directly. Instead, define
+/// an [Nfa], then convert it to a [Dfa] with [powersetConstruction] or
+/// [powersetConstructionAmbiguous].
+///
+/// The states of a DFA are explicitly listed in [states]. All state
+/// transitions are specified as indexes into this list, and must be valid
+/// indexes or [errorState]. The state machine starts in [startState].
 class Dfa<T> implements StateMachine<T> {
   Dfa(this.states)
       : assert(states.isNotEmpty, 'states must not be empty'),
         _current = startState;
 
+  /// A newly constructed [Dfa] is initially in state 0.
   static const int startState = 0;
+
+  /// When a transition is taken that contains this value, [inErrorState]
+  /// becomes `true`.
   static const int errorState = -1;
 
   final List<DState<T>> states;
@@ -114,10 +126,13 @@ class Dfa<T> implements StateMachine<T> {
   }
 }
 
+/// A single state of [Dfa.states]. If other code refers to the _id_ of a
+/// [DState], it means the index in [Dfa.states] at which that state is stored.
 class DState<T> {
   const DState(this.transitions,
       {this.defaultTransition = Dfa.errorState, this.accept});
 
+  /// A list of non-intersecting ranges in ascending order.
   final List<Transition> transitions;
 
   /// The transition that should be taken if the read character is not in
@@ -130,7 +145,7 @@ class DState<T> {
 
   @override
   String toString() =>
-      'DState<$T>(${transitions.join(', ')}' +
+      'DState(${transitions.join(", ")}' +
       (defaultTransition == Dfa.errorState
           ? ''
           : ', defaultTransition: $defaultTransition') +

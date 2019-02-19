@@ -1,9 +1,8 @@
-library regular_scanner.src.powerset_construction;
-
 import 'dart:collection';
 
 import 'package:quiver/core.dart';
 
+import '../../state_machine.dart' as api;
 import '../range.dart';
 import 'dfa.dart';
 import 'nfa.dart';
@@ -127,13 +126,47 @@ DState<D> constructState<N, D>(Set<NState<N>> powerset,
           .toSet()));
 }
 
+/// Considers two powersets as equal if they contain the same elements.
 bool compareSet(Set a, Set b) => a.length == b.length && a.containsAll(b);
 int hashSet(Set s) =>
     hashObjects(s.map((e) => e.hashCode).toList(growable: false)..sort());
 
+/// Thrown by the default `resolveAccept` of [api.powersetConstruction] if the
+/// [Nfa] is ambiguous.
+///
+/// You may throw an instance of this class in your own `resolveAccept` callback
+/// and [api.powersetConstruction] will fill in [states] for you.
 class AmbiguousInputException<T> implements Exception {
   AmbiguousInputException(this.collisions);
 
+  /// Contains the [Nfa.accept] set of the ambiguous [DState].
   final Iterable<T> collisions;
+
+  /// Contains all [DState]s that were successfully constructed by
+  /// [api.powersetConstruction], excluding the ambiguous state and all
+  /// discovered but unresolved states. The ambiguous state would have been
+  /// assigned to id `states.length`, so [Dfa.findShortestPath] can be used to
+  /// find a path from the start state to the ambiguous state.
   List<DState> states;
+
+  @override
+  String toString() {
+    if (states.isEmpty) {
+      return 'The objects ${collisions.join(", ")} all match an empty input';
+    }
+
+    final path = Dfa.findShortestPath(states);
+    final guards = Iterable.generate(path.length - 1, (i) {
+      final state = states[path[i]];
+      for (final transition in state.transitions) {
+        if (transition.successor == path[i + 1]) {
+          return transition.min;
+        }
+      }
+      return state.defaultTransition;
+    });
+
+    return 'The objects ${collisions.join(", ")} '
+        'all match the input sequence ${guards.join(", ")}';
+  }
 }

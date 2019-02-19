@@ -24,9 +24,10 @@ int binarySearch(final List<Range> sortedList, final int value) {
 
 /// Searches for the element in [ranges] that contains [value].
 ///
-/// Falls back to the element first element with a [Range.min] greater than
-/// [value] if no elements contains [value], or to `ranges.length` if [value] is
-/// greater than all elements.
+/// Falls back to the first element with a [Range.min] greater than [value] if
+/// no elements contains [value], or to `ranges.length` if [value] is greater
+/// than all elements.
+///
 /// [ranges] must be in ascending order, and the elements must be
 /// non-intersecting.
 int findContainingOrNext(List<Range> ranges, int value) {

@@ -1,27 +1,50 @@
-/// This library provides access to the state machines that are used under the
-/// hood by [StateMachineScanner]. You can use them if you want to implement a
-/// state machine-based matching algorithm, but don't want to encode your
-/// patterns as regular expressions.
+/// This library exposes the state machines that are used internally by
+/// [StateMachineScanner]. You can use them to execute more specialized string
+/// matching, as described in the `regular_scanner` library documentation; or
+/// to implement your very own classification mechanism that is not even backed
+/// by regular expressions.
 ///
-/// The interesting member of this library is [powersetConstruction], which
-/// creates a deterministic state machine from a nondeterministic one. If you
-/// don't need that functionality, you probably don't want to use this library
-/// at all, because implementing a state machine isn't very complicated and the
-/// API was designed around the primary use case of this package: regular
-/// expressions.
+/// When working with an existing state machine, it should be sufficient to read
+/// the documentation of the [StateMachine] interface (and the general notes
+/// below).
 ///
-/// For more information, look at the docs of the individual classes. Start
-/// reading at [StateMachine] to learn how a you can use it to match an input.
-/// Then, take a look at [Nfa] to learn how to construct your own state machine.
+/// When you're building the state machine yourself, you have the choice between
+/// two implementations of the [StateMachine] interface: [Nfa], which is defined
+/// in terms of [NState]s, and [Dfa], which consists of [DState]s. The reason
+/// why you might want to use this package instead of simply writing your own
+/// state machine is the [powersetConstruction] function, which converts an
+/// [Nfa] to an equivalent [Dfa].
 ///
-/// - explain what it means if an NFA is ambiguous, and that it can't be
-///   detected until [powersetConstruction] is called.
-/// - NFA start states must never be entered again, because the start *is*
-///   already entered without that it's guard is checked for the first input.
-///   TODO: Maybe `NState.start` shouldn't be public API, and we should just
-///   instantiate some of those internally to have a starting point?
-/// - note about naming: guards
-library state_machines;
+/// Here are some more general hints that might help you better understand the
+/// API, and the rationale behind it.
+///  * All state machines in this library are Moore machines – information can
+///    only be attached to states, not to transitions.
+///  * The documentation uses the term _guard_ to refer to the input annotation
+///    of a transition. For example, in a state machine with two states (1) and
+///    (2) and a single transition "go from (1) to (2) on input `X`", state (2)
+///    is _guarded by `X`_.
+///  * All transitions into a state must be guarded by the same symbol. This
+///    limitation allows us to store the guard in the state itself. To construct
+///    the example above, simply create the states (1) and (2), set (2) as a
+///    successor of (1), and set `X` as the guard of (2).
+///  * Transitions are optimized for the original use case of this library,
+///    regular expressions. Two common regex matchers are natively supported.
+///    - The expression `[A-Z]` matches a range of characters. It would be
+///      wasteful to represent this as 26 individual transitions, so a state can
+///      be guarded by a [Range].
+///    - The expression `.` matches any single character and can be represented
+///      as [GuardType.wildcard]. It is always taken, regardless of the read
+///      input.
+///  * To implement perfect guesses at nondeterministic transitions, an [Nfa]
+///    can be in multiple states at once. Therefore, it can also be in multiple
+///    accepting states at once – the classification performed by the [Nfa] is
+///    _ambiguous_.
+///
+///    Ambiguity can be statically detected by converting the [Nfa] to a [Dfa]
+///    with [powersetConstruction]; results from this function are guaranteed to
+///    be unambiguous. If you want to store your state machine as a [Dfa] but
+///    _retain_ the ambiguity, use [powersetConstructionAmbiguous] instead.
+library regular_scanner.state_machine;
 
 import 'regular_scanner.dart';
 import 'src/state_machine/dfa.dart';
@@ -32,7 +55,7 @@ import 'src/state_machine/powerset_construction.dart'
 
 export 'src/range.dart' show Range;
 export 'src/state_machine/dfa.dart' show Dfa, DState, Transition;
-export 'src/state_machine/nfa.dart' show Nfa, NState;
+export 'src/state_machine/nfa.dart' show Nfa, NState, GuardType;
 export 'src/state_machine/powerset_construction.dart'
     show AmbiguousInputException;
 
@@ -47,10 +70,11 @@ export 'src/state_machine/powerset_construction.dart'
 /// corresponding object(s) are available through [accept].
 ///
 /// If a state machine reads an input for which the current state has no
-/// transition, it reaches an error state. This is observable for callers
+/// transition, it reaches an _error state_. This is observable for callers
 /// through [inErrorState]. An error state can't be exited by [moveNext], but
 /// the method can still be called.
 abstract class StateMachine<T> {
+  /// While in an error state, [accept] will always be `null`.
   bool get inErrorState;
 
   /// If this is in an accepting state, returns the object(s) associated with
@@ -78,20 +102,21 @@ abstract class StateMachine<T> {
 /// [NState.accept] value is used as [DState.accept]. The default is to throw an
 /// [AmbiguousInputException] when more than one is found.
 Dfa<T> powersetConstruction<T>(List<NState<T>> nfa,
-        [T Function(Set<T>) resolveAccept]) =>
-    impl.powersetConstruction<T, T>(
-        nfa,
-        resolveAccept ??
-            (accept) {
-              switch (accept.length) {
-                case 0:
-                  return null;
-                case 1:
-                  return accept.first;
-                default:
-                  throw AmbiguousInputException(accept);
-              }
-            });
+    [T Function(Set<T>) resolveAccept]) {
+  T defaultResolveAccept(Set<T> accept) {
+    switch (accept.length) {
+      case 0:
+        return null;
+      case 1:
+        return accept.first;
+      default:
+        throw AmbiguousInputException(accept);
+    }
+  }
+
+  return impl.powersetConstruction<T, T>(
+      nfa, resolveAccept ?? defaultResolveAccept);
+}
 
 /// Constructs an ambiguous deterministic state machine from a nondeterministic
 /// one.
@@ -102,6 +127,10 @@ Dfa<T> powersetConstruction<T>(List<NState<T>> nfa,
 /// or to arrange them in a desired order. The default is to return all values
 /// in an undefined order.
 Dfa<List<T>> powersetConstructionAmbiguous<T>(List<NState<T>> nfa,
-        [List<T> Function(Set<T>) preprocessAccept]) =>
-    impl.powersetConstruction<T, List<T>>(
-        nfa, preprocessAccept ?? (accept) => accept.toList());
+    [List<T> Function(Set<T>) preprocessAccept]) {
+  List<T> defaultPreprocessAccept(Set<T> accept) =>
+      accept.isEmpty ? null : accept.toList();
+
+  return impl.powersetConstruction<T, List<T>>(
+      nfa, preprocessAccept ?? defaultPreprocessAccept);
+}
