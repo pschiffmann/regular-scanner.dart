@@ -34,7 +34,7 @@ const _characterSetEscapes = TokenType(r'\\[\^\-]', _extractEscapedOperator);
   _unrecognizedEscape,
   _defaultContextEscapes
 ])
-const Scanner<TokenType> defaultContextScanner = _$defaultContextScanner;
+const defaultContextScanner = _$defaultContextScanner;
 
 @InjectScanner([
   characterSetStart,
@@ -48,7 +48,7 @@ const Scanner<TokenType> defaultContextScanner = _$defaultContextScanner;
   _characterSetEscapes,
   _unrecognizedEscape
 ])
-const Scanner<TokenType> characterSetScanner = _$characterSetScanner;
+const characterSetScanner = _$characterSetScanner;
 
 /// Presents [pattern] as a sequence of regular expression tokens.
 ///

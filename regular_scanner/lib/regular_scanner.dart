@@ -29,7 +29,7 @@ class ScannerMatch<T> implements Match {
       : assert(0 <= start && start <= end && end <= input.length);
 
   @override
-  final Scanner<T> pattern;
+  final Scanner pattern;
   @override
   final String input;
   @override
@@ -60,10 +60,12 @@ class ScannerMatch<T> implements Match {
   int get groupCount => 0;
 }
 
-abstract class Scanner<T> implements Pattern {
+abstract class Scanner<T, S extends StateMachine<T>> implements Pattern {
   /// Empty constructor allows extending this class, which can be used to
   /// inherit [allMatches].
   const Scanner();
+
+  S stateMachine();
 
   @override
   Iterable<ScannerMatch<T>> allMatches(String string, [int start = 0]) sync* {
@@ -79,7 +81,27 @@ abstract class Scanner<T> implements Pattern {
   }
 
   @override
-  ScannerMatch<T> matchAsPrefix(String string, [int start = 0]);
+  ScannerMatch<T> matchAsPrefix(String string, [int start = 0]) {
+    RangeError.checkValueInInterval(start, 0, string.length, 'string');
+
+    final sm = stateMachine();
+    var accept = sm.accept;
+    var end = start;
+
+    final runes = RuneIterator.at(string, start);
+    while (runes.moveNext()) {
+      sm.moveNext(runes.current);
+      if (sm.inErrorState) break;
+      if (sm.accept != null) {
+        accept = sm.accept;
+        end = runes.rawIndex + runes.currentSize;
+      }
+    }
+
+    return accept == null
+        ? null
+        : ScannerMatch(this, accept, string, start, end);
+  }
 
   ///
   static StateMachineScanner<R, Dfa<R>> unambiguous<R extends Regex>(
