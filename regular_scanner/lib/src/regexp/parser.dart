@@ -1,6 +1,6 @@
 import '../range.dart';
 import 'ast.dart';
-import 'scanner.dart';
+import 'lexer.dart';
 import 'token.dart';
 
 /// Parses [regex] into an [Expression] tree. Throws [FormatException] on

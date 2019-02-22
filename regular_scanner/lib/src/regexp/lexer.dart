@@ -5,7 +5,7 @@ import '../../built_scanner.dart';
 import 'token.dart';
 import 'unicode.dart';
 
-part 'scanner.g.dart';
+part 'lexer.g.dart';
 
 const _controlCharacterEscape =
     TokenType(r'\\[trnvf0]', _extractConrolCharacter);
