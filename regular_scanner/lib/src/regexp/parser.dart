@@ -132,36 +132,47 @@ Group parseGroup(TokenIterator context) {
 CharacterSet parseCharacterSet(TokenIterator context) {
   assert(context.current == characterSetStart);
   context.insideCharacterSet = true;
-
   final startIndex = context.index;
-  context.moveNext();
+
+  void moveNextChecked() {
+    context.moveNext();
+    if (context.current == null) context.error('Unclosed `[`', startIndex);
+  }
+
+  // Step over `[`.
+  moveNextChecked();
 
   final negated = context.current == negation;
-  if (negated) context.moveNext();
-
-  /// Returns [TokenIterator.codePoint] if the current token is a [literal], and
-  /// advances the iterator by one element. Else, throws a [FormatException].
-  int readLiteralAdvance() {
-    if (context.current == null) {
-      context.error('Unclosed `[`', startIndex);
-    } else if (context.current != literal) {
-      context.error('The special characters `[]^-\` must always be escaped '
-          'inside character groups');
-    }
-    final codeUnit = context.codePoint;
-    context.moveNext();
-    return codeUnit;
-  }
+  if (negated) moveNextChecked();
 
   final ranges = <Range>[];
   while (context.current != characterSetEnd) {
-    final lowerBound = readLiteralAdvance();
+    if (context.current != literal) {
+      context.error(r'The special characters `[]^-\` must always be escaped '
+          'inside character groups');
+    }
+
+    final lowerBound = context.codePoint;
+    final lowerBoundIndex = context.index;
+    moveNextChecked();
+
     if (context.current != rangeSeparator) {
       ranges.add(Range.single(lowerBound));
       continue;
     }
-    context.moveNext();
-    ranges.add(Range(lowerBound, readLiteralAdvance()));
+    final separatorIndex = context.index;
+    moveNextChecked();
+
+    if (context.current != literal) {
+      context.error('Incomplete range', separatorIndex);
+    }
+    final upperBound = context.codePoint;
+    moveNextChecked();
+    if (upperBound < lowerBound) {
+      context.error(
+          'Ranges must be specified from low to high', lowerBoundIndex);
+    }
+    ranges.add(Range(lowerBound, upperBound));
   }
   context
     ..insideCharacterSet = false
