@@ -1,5 +1,6 @@
 import 'package:charcode/ascii.dart';
 import 'package:regular_scanner/src/range.dart';
+import 'package:regular_scanner/src/regexp/ast.dart';
 import 'package:regular_scanner/src/regexp/lexer.dart';
 import 'package:regular_scanner/src/regexp/parser.dart';
 import 'package:test/test.dart';
@@ -19,6 +20,56 @@ void expectFormatException(
 }
 
 void main() {
+  group('`parseUnknown()`', () {
+    TokenIterator scan(String regex) => TokenIterator(regex)..moveNext();
+
+    test('defers to literal, dot, group, character set parsing functions', () {
+      final result = parseUnknown(scan('a.(b)[c]')) as Sequence;
+      expect(result.children[0], TypeMatcher<Literal>());
+      expect(result.children[1], TypeMatcher<Wildcard>());
+      expect(result.children[2], TypeMatcher<Group>());
+      expect(result.children[3], TypeMatcher<CharacterSet>());
+    });
+
+    test('creates alternation only when needed', () {
+      final result = parseUnknown(scan('abc')) as Sequence;
+      expect(result.children[0], TypeMatcher<Literal>());
+      expect(result.children[1], TypeMatcher<Literal>());
+      expect(result.children[2], TypeMatcher<Literal>());
+    });
+
+    test('creates groups only when needed', () {
+      final result = parseUnknown(scan('a|bc|d')) as Alternation;
+      expect(result.children[0], TypeMatcher<Literal>());
+      expect(result.children[1], TypeMatcher<Sequence>());
+      expect(result.children[2], TypeMatcher<Literal>());
+    });
+
+    test('throws on other token types', () {
+      expectFormatException(() => parseUnknown(scan('xx++')), 3,
+          'Unescaped repetition character');
+      expectFormatException(() => parseUnknown(scan('ab|*')), 3,
+          'Unescaped repetition character');
+      expectFormatException(() => parseUnknown(scan('?...')), 0,
+          'Unescaped repetition character');
+      expectFormatException(() => parseUnknown(scan(']')), 0, 'Unbalanced `]`');
+    });
+
+    test('throws on empty alternation', () {
+      expectFormatException(
+          () => parseUnknown(scan('a||b')), 2, 'Empty alternative');
+      expectFormatException(
+          () => parseUnknown(scan('|a')), 0, 'Empty alternative');
+    });
+
+    test('stops at first `)`', () {
+      final it = scan('x|yz)def');
+      final result = parseUnknown(it) as Alternation;
+      expect(it.index, 4);
+      expect(result.children.length, 2);
+    });
+  });
+
   group('`parseCharacterSet()`', () {
     TokenIterator scan(String regex) => TokenIterator(regex)
       ..moveNext()
