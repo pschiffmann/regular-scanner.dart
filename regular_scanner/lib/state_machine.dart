@@ -46,6 +46,8 @@
 ///    _retain_ the ambiguity, use [powersetConstructionAmbiguous] instead.
 library regular_scanner.state_machine;
 
+import 'dart:async';
+
 import 'regular_scanner.dart';
 import 'src/state_machine/dfa.dart';
 import 'src/state_machine/nfa.dart';

@@ -28,6 +28,9 @@ T highestPrecedenceRegex<T extends Regex>(Set<T> regexes) {
       : throw AmbiguousRegexException(highestPrecedence);
 }
 
+/// Returns [regexes] ordered by [Regex.precedence] descending, or `null` if
+/// [regexes] is empty. Throws an [AmbiguousRegexException] if multiple
+/// [regexes] have the same precedence.
 List<T> orderByPrecedence<T extends Regex>(Set<T> regexes) {
   if (regexes.isEmpty) return null;
 
@@ -46,38 +49,50 @@ List<T> orderByPrecedence<T extends Regex>(Set<T> regexes) {
   return result;
 }
 
+/// Thrown by [Scanner.unambiguous] and [Scanner.ambiguous] if an input string
+/// exists that is matched by multiple regexes with the same [Regex.precedence].
 class AmbiguousRegexException<T extends Regex>
     extends AmbiguousInputException<T> {
   AmbiguousRegexException(Iterable<T> collisions) : super(collisions);
 
-  @override
-  String toString() =>
-      'The patterns ${collisions.join(", ")} all match the ' +
-      (states.isEmpty
-          ? 'empty string'
-          : 'string ${generateAmbiguousInput(states)}');
-}
-
-///
-String generateAmbiguousInput(List<DState> states) {
-  final buffer = StringBuffer();
-  final path = Dfa.findShortestPath(states);
-  var containsDoubleQuote = false;
-  var containsSingleQuote = false;
-  for (var i = 0; i < path.length - 1; i++) {
-    final char = findTransitionTo(states[path[i]], path[i + 1]);
-    buffer.write(char);
-    if (char == '"') {
-      containsDoubleQuote = true;
-    } else if (char == "'") {
-      containsSingleQuote = true;
+  /// Returns a string that is matched by all [collisions].
+  ///
+  /// The string contains only ASCII characters and the characters from
+  /// http://www.unicode.org/charts/PDF/U2400.pdf to render ASCII control
+  /// characters. If [collisions] only match a non-ASCII character at any index,
+  /// that character is represented as `U+hhhhhh`.
+  String generateAmbiguousInput() {
+    final buffer = StringBuffer();
+    final path = Dfa.findShortestPath(states);
+    for (var i = 0; i < path.length - 1; i++) {
+      final char = findTransitionTo(states[path[i]], path[i + 1]);
+      buffer.write(char);
     }
+    return buffer.toString();
   }
-  if (!containsDoubleQuote) return '"$buffer"';
-  if (!containsSingleQuote) return "'$buffer'";
-  return '`$buffer`';
+
+  @override
+  String toString() {
+    String exampleInput;
+    if (states.isEmpty) {
+      exampleInput = 'empty string';
+    } else {
+      exampleInput = generateAmbiguousInput();
+      if (!exampleInput.contains('"')) {
+        exampleInput = 'string "$exampleInput"';
+      } else if (!exampleInput.contains("'")) {
+        exampleInput = "string '$exampleInput'";
+      } else {
+        exampleInput = 'string `$exampleInput`';
+      }
+    }
+    return 'The patterns ${collisions.join(", ")} all match the $exampleInput';
+  }
 }
 
+/// Searches [DState.transitions] and [DState.defaultTransition] of [state] for
+/// transitions that point to [successor], preferring a transition that is
+/// guarded by an ASCII character. Returns a string representation of the guard.
 String findTransitionTo(DState state, int successor) {
   String character;
   var quality = 6;
