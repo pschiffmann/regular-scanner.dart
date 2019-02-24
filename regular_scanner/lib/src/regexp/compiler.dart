@@ -31,6 +31,8 @@ import 'parser.dart';
 ///
 /// The [NState.accept] of all accepting states contain [regex].
 NState<T> compile<T extends Regex>(T regex) {
+  if (regex.pattern.isEmpty) return NState.start(accept: regex);
+
   final ast = parse(regex.pattern);
 
   final acceptingStates = ast.last.toSet();
