@@ -153,13 +153,13 @@ library regular_scanner;
 
 import 'dart:math';
 
-import 'src/regexp/compiler.dart';
-import 'src/regexp/handle_ambiguity.dart';
-import 'src/regexp/state_machine_scanner.dart';
+import 'src/regex/compiler.dart';
+import 'src/regex/handle_ambiguity.dart';
+import 'src/regex/state_machine_scanner.dart';
 import 'state_machine.dart';
 
-export 'src/regexp/handle_ambiguity.dart' show AmbiguousRegexException;
-export 'src/regexp/state_machine_scanner.dart' show StateMachineScanner;
+export 'src/regex/handle_ambiguity.dart' show AmbiguousRegexException;
+export 'src/regex/state_machine_scanner.dart' show StateMachineScanner;
 
 /// Defines a regular expression for use by [Scanner].
 ///

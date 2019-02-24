@@ -1,9 +1,9 @@
-library built_regular_scanner;
+library regular_scanner.built_scanner;
 
 import 'package:regular_scanner/regular_scanner.dart';
 
 export 'regular_scanner.dart';
-export 'src/regexp/state_machine_scanner.dart' show BuiltScanner;
+export 'src/regex/state_machine_scanner.dart' show BuiltScanner;
 export 'src/state_machine/dfa.dart';
 
 /// This annotation marks a `const` variable as an injection point for a

@@ -1,5 +1,5 @@
-import 'package:regular_scanner/src/regexp/ast.dart';
-import 'package:regular_scanner/src/regexp/parser.dart';
+import 'package:regular_scanner/src/regex/ast.dart';
+import 'package:regular_scanner/src/regex/parser.dart';
 import 'package:test/test.dart';
 
 void main() {

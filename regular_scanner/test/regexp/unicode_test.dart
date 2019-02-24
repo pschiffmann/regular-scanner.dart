@@ -1,4 +1,4 @@
-import 'package:regular_scanner/src/regexp/unicode.dart';
+import 'package:regular_scanner/src/regex/unicode.dart';
 import 'package:test/test.dart';
 
 void main() {

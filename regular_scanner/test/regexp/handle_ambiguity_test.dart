@@ -1,7 +1,7 @@
 import 'package:charcode/ascii.dart';
 import 'package:regular_scanner/regular_scanner.dart';
 import 'package:regular_scanner/src/range.dart';
-import 'package:regular_scanner/src/regexp/handle_ambiguity.dart';
+import 'package:regular_scanner/src/regex/handle_ambiguity.dart';
 import 'package:regular_scanner/state_machine.dart';
 import 'package:test/test.dart';
 

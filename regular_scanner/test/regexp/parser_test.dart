@@ -1,8 +1,8 @@
 import 'package:charcode/ascii.dart';
 import 'package:regular_scanner/src/range.dart';
-import 'package:regular_scanner/src/regexp/ast.dart';
-import 'package:regular_scanner/src/regexp/lexer.dart';
-import 'package:regular_scanner/src/regexp/parser.dart';
+import 'package:regular_scanner/src/regex/ast.dart';
+import 'package:regular_scanner/src/regex/lexer.dart';
+import 'package:regular_scanner/src/regex/parser.dart';
 import 'package:test/test.dart';
 
 /// Expects that `callback` throws a [FormatException] containing [offset] and
