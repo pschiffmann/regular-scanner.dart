@@ -154,11 +154,11 @@ library regular_scanner;
 import 'dart:math';
 
 import 'src/regexp/compiler.dart';
-import 'src/regexp/explain_ambiguity.dart';
+import 'src/regexp/handle_ambiguity.dart';
 import 'src/regexp/state_machine_scanner.dart';
 import 'state_machine.dart';
 
-export 'src/regexp/explain_ambiguity.dart' show AmbiguousRegexException;
+export 'src/regexp/handle_ambiguity.dart' show AmbiguousRegexException;
 export 'src/regexp/state_machine_scanner.dart' show StateMachineScanner;
 
 /// Defines a regular expression for use by [Scanner].
@@ -252,8 +252,6 @@ class ScannerMatch<T> implements Match {
 /// for [ambiguous] scanners it is a `List<Regex`, and for [nondeterministic]
 /// scanners it is a `Set<Regex>`.
 abstract class Scanner<T, S extends StateMachine<T>> implements Pattern {
-  /// Empty constructor allows extending this class, which can be used to
-  /// inherit [allMatches].
   const Scanner();
 
   /// Returns a new state machine that accepts the union over all [Regex]es this
