@@ -170,9 +170,9 @@ int _extractUnicodeLiteral(ScannerMatch m) {
   final hexString =
       m.input.substring(m.start + prefixLength, m.end - suffixLength);
   final codePoint = int.parse(hexString, radix: 16);
-  if (!isValidCodePoint(codePoint)) {
+  if (!isUnicodeScalarValue(codePoint)) {
     throw FormatException(
-        'Not a Unicode code point', m.input, m.start + prefixLength);
+        'Not a Unicode scalar value', m.input, m.start + prefixLength);
   }
   return codePoint;
 }
