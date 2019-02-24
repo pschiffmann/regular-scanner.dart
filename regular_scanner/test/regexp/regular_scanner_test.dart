@@ -3,6 +3,59 @@ import 'package:test/test.dart';
 
 void main() {
   group('Scanner', () {
+    group('.unambiguous()', () {
+      test('constructs a scanner', () {
+        final p1 = Regex('exactlythis', precedence: 1),
+            p2 = Regex('[A-Z]+'),
+            p3 = Regex('[a-z]+');
+        final scanner = Scanner.unambiguous([p1, p2, p3]);
+        expect(scanner.matchAsPrefix('exactlythis').regex, p1);
+        expect(scanner.matchAsPrefix('somethingelse').regex, p3);
+      });
+
+      test('rejects ambiguous regexes', () {
+        expect(
+            () => Scanner.unambiguous([
+                  Regex('exactlythis'),
+                  Regex('[A-Z]+'),
+                  Regex('[a-z]+'),
+                ]),
+            throwsA(TypeMatcher<AmbiguousRegexException>()));
+      });
+    });
+
+    group('.ambiguous()', () {
+      test('constructs a scanner', () {
+        final p1 = Regex('exactlythis', precedence: 1),
+            p2 = Regex('[A-Z]+'),
+            p3 = Regex('[a-z]+');
+        final scanner = Scanner.ambiguous([p1, p2, p3]);
+        expect(scanner.matchAsPrefix('exactlythis').regex, [p1, p3]);
+        expect(scanner.matchAsPrefix('somethingelse').regex, [p3]);
+      });
+
+      test('rejects ambiguous regexes', () {
+        expect(
+            () => Scanner.ambiguous([
+                  Regex('exactlythis'),
+                  Regex('[A-Z]+'),
+                  Regex('[a-z]+'),
+                ]),
+            throwsA(TypeMatcher<AmbiguousRegexException>()));
+      });
+    });
+
+    test('.nondeterministic()', () {
+      final p1 = Regex('exactlythis', precedence: 1),
+          p2 = Regex('[A-Z]+'),
+          p3 = Regex('[a-z]+');
+      final scanner = Scanner.nondeterministic([p1, p2, p3]);
+      expect(scanner.matchAsPrefix('exactlythis').regex,
+          unorderedEquals([p1, p3]));
+      expect(
+          scanner.matchAsPrefix('somethingelse').regex, unorderedEquals([p3]));
+    });
+
     group('.matchAsPrefix()', () {
       test('returns `null` if no regex matches', () {
         final scanner = Scanner.unambiguous([Regex('abc')]);
@@ -41,7 +94,7 @@ void main() {
       final p2 = Regex('a');
       final p3 = Regex('bb');
       final scanner = Scanner.unambiguous([p1, p2, p3]);
-      final matches = scanner.allMatches('aa aaabbbaaaa').toList();
+      final matches = scanner.allMatches('aa aaabbbaaaac').toList();
       expect(matches.length, 6);
       expect(matches[0].regex, p1);
       expect(matches[0].start, 0);
