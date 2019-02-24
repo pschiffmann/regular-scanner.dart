@@ -10,7 +10,7 @@
 ///
 /// [Regex]es are compiled to [StateMachine]s. The state machine is explicitly
 /// part of the public API and can be used in situations where
-/// [Scanner.matchAsPrefix] is too limited. Two examples are given below.
+/// [Scanner.matchAsPrefix] is too limited. Some examples are given below.
 ///
 /// The [Scanner.stateMachine] state transitions are [Unicode code points][1].
 /// Byte sequences must be decoded to code points before they can be matched
@@ -153,9 +153,8 @@ library regular_scanner;
 
 import 'dart:math';
 
-import 'src/regexp/ast_to_nfa.dart';
+import 'src/regexp/compiler.dart';
 import 'src/regexp/explain_ambiguity.dart';
-import 'src/regexp/parser.dart';
 import 'src/regexp/state_machine_scanner.dart';
 import 'state_machine.dart';
 
@@ -305,7 +304,7 @@ abstract class Scanner<T, S extends StateMachine<T>> implements Pattern {
   static StateMachineScanner<R, Dfa<R>> unambiguous<R extends Regex>(
           Iterable<R> regexes) =>
       StateMachineScanner(
-          powersetConstruction(_compile(regexes), highestPrecedenceRegex));
+          powersetConstruction(_compileAll(regexes), highestPrecedenceRegex));
 
   /// Generates an ambiguous scanner backed by a [Dfa].
   ///
@@ -314,8 +313,8 @@ abstract class Scanner<T, S extends StateMachine<T>> implements Pattern {
   /// throws an [AmbiguousRegexException].
   static StateMachineScanner<List<R>, Dfa<List<R>>> ambiguous<R extends Regex>(
           Iterable<R> regexes) =>
-      StateMachineScanner(
-          powersetConstructionAmbiguous(_compile(regexes), orderByPrecedence));
+      StateMachineScanner(powersetConstructionAmbiguous(
+          _compileAll(regexes), orderByPrecedence));
 
   /// Generates an ambiguous scanner backed by an [Nfa].
   ///
@@ -323,14 +322,12 @@ abstract class Scanner<T, S extends StateMachine<T>> implements Pattern {
   /// [Dfa]-backed variants, but it does not perform any ambiguity checks.
   static StateMachineScanner<Set<R>, Nfa<R>> nondeterministic<R extends Regex>(
           Iterable<R> regexes) =>
-      StateMachineScanner(Nfa(_compile(regexes)));
+      StateMachineScanner(Nfa(_compileAll(regexes)));
 }
 
-List<NState<T>> _compile<T extends Regex>(Iterable<T> regexes) {
-  final startStates = <NState<T>>[];
-  for (final regex in regexes) {
-    final ast = parse(regex.pattern);
-    startStates.add(astToNfa(ast, regex));
-  }
-  return startStates;
-}
+/// Compiles all [regexes] into a single [Nfa] start state set.
+///
+/// An [Nfa] can be in multiple states at once, and this is true for the start
+/// states too. Thus, we can simply concatenate all individual start states.
+List<NState<T>> _compileAll<T extends Regex>(Iterable<T> regexes) =>
+    regexes.map(compile).toList();

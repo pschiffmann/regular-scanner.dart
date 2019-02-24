@@ -1,38 +1,80 @@
+/// This library defines the [abstract syntax tree][1] structure for regular
+/// expressions. For example, the expression `a(bc)+|[0-9]` would be represented
+/// by the following snytax tree:
+///
+/// ```
+/// Alternation
+/// ├╴Sequence
+/// │ ├╴Literal a
+/// │ └╴Group+
+/// │   └╴Sequence
+/// │     ├╴Literal b
+/// │     └╴Literal c
+/// └╴CharacterSet
+///   └╴Range 0..9
+/// ```
+///
+/// Syntax trees are created by [parse] and consumed by [compile]. The ony API
+/// used in [compile] are the methods and properties of the [Expression] and
+/// [AtomicExpression] interfaces. Especially the methods of
+/// [DelegatingExpression] are only relevant inside this library.
+///
+/// [1]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 library regular_scanner.regex.ast;
 
+import '../../state_machine.dart';
 import '../range.dart';
+import 'compiler.dart';
+import 'parser.dart';
 
+/// The basic interface shared by all expressions. All expressions are either
+/// [AtomicExpression]s or [DelegatingExpression]s.
 abstract class Expression {
-  _Parent get parent => _parent;
-  _Parent _parent;
+  /// The parent of this expression, or `null` if this has no parent.
+  ///
+  /// The parent/child relationship is established by the constructor of the
+  /// [DelegatingExpression]. An expression can only be child of a single
+  /// parent; once [parent] is not `null`, passing it to an additional parent
+  /// will cause an [AssertionError]. Assignment to the parent is irreversible.
+  DelegatingExpression get parent => _parent;
+  DelegatingExpression _parent;
+
+  /// If [_parent] is a [_CompositeExpression], the index of this in
+  /// [_CompositeExpression.children]. If [_parent] is a [Group], 0.
   int _parentIndex;
 
+  /// All [AtomicExpression]s in this expression subtree.
   Iterable<AtomicExpression> get leafs;
 
   /// Returns all recursive children of type [AtomicExpression] in this subtree
   /// that can be reached with a single transition from a preceding expression.
+  ///
+  /// For example, in the expression `a(bc|de)`, [first] of the group `(bc|de)`
+  /// contains the [Literal]s `b` and `d`.
+  ///
+  /// This property is used in two places:
+  ///  1. This property tells [compile] which states are the successors of a
+  ///     given state. For example, the successors of `a` are `b` and `d`.
+  ///  2. The [first] set of the root expression is used by [compile] as the
+  ///     successors of the start state.
   Iterable<AtomicExpression> get first;
 
   /// Returns all recursive children of this that can exit this subtree with a
   /// single transition.
+  ///
+  /// This property serves a single purpose: The [last] set of the root
+  /// expression contains all accepting states of the expression.
   Iterable<AtomicExpression> get last;
 
+  /// If `true`, this expression can match the empty string.
+  ///
+  /// This can happen if this expression is annotated with `*` or `?`, or if
+  /// this is a [DelegatingExpression] and the children are [optional].
   bool get optional;
 }
 
-/// Marker interface.
-abstract class _Parent implements Expression {
-  /// Returns all successors of [child] that it can reach with a single
-  /// transition, including successors from [parent]. `child.parent` must be
-  /// `this`.
-  ///
-  /// May contain duplicates. For example, in the expression `(a+)+`, both the
-  /// `a+` [Literal] and the `()+` [Group] will wrap around and report `a` as a
-  /// successor of itself.
-  Iterable<AtomicExpression> successors(final Expression child);
-}
-
-///
+/// [AtomicExpression]s represent expressions that actually consume input
+/// characters: [Literal], [CharacterSet] and [Wildcard].
 abstract class AtomicExpression extends Expression {
   AtomicExpression(this._repetition);
 
@@ -61,6 +103,22 @@ abstract class AtomicExpression extends Expression {
   bool get optional => _repetition.optional;
 }
 
+/// [DelegatingExpression]s don't consume input characters directly, but
+/// delegate this work to their children.
+///
+/// A [DelegatingExpression] claims ownership of its children when it is
+/// created. Passing an expression that already has a [Expression.parent] to a
+/// [DelegatingExpression] constructor will cause an [AssertionError].
+abstract class DelegatingExpression extends Expression {
+  /// Returns all successors of [child] that it can reach with a single
+  /// transition, including successors from [parent]. `child.parent` must be
+  /// `this`.
+  ///
+  /// May contain duplicates. See [AtomicExpression.successors] for details.
+  Iterable<AtomicExpression> successors(final Expression child);
+}
+
+/// Represents a single literal character pattern, like `a*`.
 class Literal extends AtomicExpression {
   Literal(this.codePoint, [Repetition repetition = Repetition.one])
       : super(repetition);
@@ -71,6 +129,7 @@ class Literal extends AtomicExpression {
   String toString() => '${String.fromCharCode(codePoint)}$_repetition';
 }
 
+/// Represents a character set pattern, like `[A-Za-z_]`.
 class CharacterSet extends AtomicExpression {
   CharacterSet(this.codePoints,
       {this.negated = false, Repetition repetition = Repetition.one})
@@ -96,6 +155,7 @@ class CharacterSet extends AtomicExpression {
   }
 }
 
+/// Represents the wildcard pattern `.`.
 class Wildcard extends AtomicExpression {
   Wildcard([Repetition repetition = Repetition.one]) : super(repetition);
 
@@ -103,7 +163,8 @@ class Wildcard extends AtomicExpression {
   String toString() => '.$_repetition';
 }
 
-class Group extends Expression implements _Parent {
+/// Represents the grouping operator `()`.
+class Group extends DelegatingExpression {
   Group(this.child, [this._repetition = Repetition.one]) {
     assert(child._parent == null, '$child is already assigned to a parent');
     child
@@ -135,8 +196,10 @@ class Group extends Expression implements _Parent {
   String toString() => '($child)$_repetition';
 }
 
-abstract class CompositeExpression extends Expression implements _Parent {
-  CompositeExpression(Iterable<Expression> children)
+/// Superclass for [Alternation] and [Sequence] to share code. A composite
+/// expression is a [DelegatingExpression] that has multiple children.
+abstract class _CompositeExpression extends DelegatingExpression {
+  _CompositeExpression(Iterable<Expression> children)
       : children = List.unmodifiable(children),
         assert(children.isNotEmpty) {
     for (var i = 0; i < this.children.length; i++) {
@@ -155,9 +218,8 @@ abstract class CompositeExpression extends Expression implements _Parent {
       children.expand((child) => child.leafs);
 }
 
-/// A sequence matches iff all of its children match in order. This represents
-/// the concatenation of e.g. _`a`, then `b`_ in the expression `ab`.
-class Sequence extends CompositeExpression {
+/// Represents the concatenation of e.g. _`a`, then `b`_ in the expression `ab`.
+class Sequence extends _CompositeExpression {
   Sequence(Iterable<Expression> children) : super(children);
 
   @override
@@ -193,9 +255,8 @@ class Sequence extends CompositeExpression {
   String toString() => children.join('');
 }
 
-/// An alternation matches iff any of its children matches. This represents e.g.
-/// _`a` or `b` or_ in the expression `a|b`.
-class Alternation extends CompositeExpression {
+/// Represents e.g. _`a` or `b`_ in the expression `a|b`.
+class Alternation extends _CompositeExpression {
   Alternation(Iterable<Expression> children) : super(children);
 
   @override
@@ -236,9 +297,16 @@ class Repetition {
   ];
 
   final String _stringRepresentation;
+
+  /// `true` for `*` and `?`.
   final bool optional;
+
+  /// `true` for `+` and `*`.
   final bool repeat;
 
+  /// Returns the union of this and [other]. [optional] and [repeat] of the
+  /// result are `true` if the respective value is true in either this or
+  /// [other].
   Repetition operator |(Repetition other) {
     if (optional || other.optional) {
       return repeat || other.repeat ? zeroOrMore : zeroOrOne;
