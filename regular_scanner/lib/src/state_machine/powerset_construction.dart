@@ -64,7 +64,7 @@ DState<D> constructState<N, D>(Set<NState<N>> powerset,
     int Function(Set<NState<N>>) lookupId, D Function(Set<N>) computeAccept) {
   final successors = powerset.expand((state) => state.successors).toSet();
   final reservedRanges = <Range>[];
-  final defaultTransition = Set<NState<N>>();
+  final defaultTransition = <NState<N>>{};
 
   // First pass: split [reservedRanges] into ranges, and fill
   // [defaultTransition].
@@ -86,7 +86,7 @@ DState<D> constructState<N, D>(Set<NState<N>> powerset,
 
   // Second pass: Look up the successor powerset of each [reservedRanges] range.
   final transitions = reservedRanges.map((range) {
-    final successorSet = Set<NState<N>>();
+    final successorSet = <NState<N>>{};
     for (final successor in successors) {
       switch (successor.guardType) {
         case GuardType.value:

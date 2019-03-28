@@ -8,16 +8,16 @@ import 'package:test/test.dart';
 void main() {
   group('highestPrecedenceRegex()', () {
     test('returns `null` for empty sets',
-        () => expect(highestPrecedenceRegex(Set<Regex>()), isNull));
+        () => expect(highestPrecedenceRegex(<Regex>{}), isNull));
 
     test('returns the regex with the highest precedence', () {
       final best = Regex('a', precedence: 3);
       expect(
-          highestPrecedenceRegex(Set.of([
+          highestPrecedenceRegex({
             Regex('[a]', precedence: 1),
             Regex('a+', precedence: 2),
             best,
-          ])),
+          }),
           best);
     });
 
@@ -28,7 +28,7 @@ void main() {
           r2 = Regex('[a]', precedence: 1),
           r3 = Regex('a+', precedence: 2);
       try {
-        highestPrecedenceRegex(Set.of([r1, r2, r3]));
+        highestPrecedenceRegex({r1, r2, r3});
         fail('AmbiguousRegexException was not thrown');
       } on AmbiguousRegexException catch (e) {
         expect(e.collisions, unorderedEquals([r1, r3]));
@@ -40,18 +40,18 @@ void main() {
         'but a single regex with higher precedence exists', () {
       final best = Regex('a', precedence: 3);
       expect(
-          highestPrecedenceRegex(Set.of([
+          highestPrecedenceRegex({
             Regex('[a]', precedence: 1),
             Regex('a+', precedence: 1),
             best,
-          ])),
+          }),
           best);
     });
   });
 
   group('orderByPrecedence()', () {
     test('returns `null` for empty sets',
-        () => expect(orderByPrecedence(Set<Regex>()), isNull));
+        () => expect(orderByPrecedence(<Regex>{}), isNull));
 
     test('returns  all values ordered by precedence', () {
       final r1 = Regex('a', precedence: 3),
@@ -59,8 +59,7 @@ void main() {
           r3 = Regex('a+', precedence: 2),
           r4 = Regex('ab?', precedence: 5),
           r5 = Regex('.', precedence: 4);
-      expect(orderByPrecedence(Set.of([r1, r2, r3, r4, r5])),
-          [r4, r5, r1, r3, r2]);
+      expect(orderByPrecedence({r1, r2, r3, r4, r5}), [r4, r5, r1, r3, r2]);
     });
 
     test(
@@ -72,7 +71,7 @@ void main() {
           r4 = Regex('ab?', precedence: 2),
           r5 = Regex('.', precedence: 2);
       try {
-        orderByPrecedence(Set.of([r1, r2, r3, r4, r5]));
+        orderByPrecedence({r1, r2, r3, r4, r5});
         fail('AmbiguousRegexException was not thrown');
       } on AmbiguousRegexException catch (e) {
         expect(e.collisions, unorderedEquals([r3, r4, r5]));

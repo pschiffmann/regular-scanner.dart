@@ -31,7 +31,7 @@ class Nfa<T> implements StateMachine<Set<T>> {
   @override
   void moveNext(int input) {
     if (inErrorState) return;
-    final next = Set<NState<T>>();
+    final next = <NState<T>>{};
     for (final state in _current) {
       for (final successor in state.successors) {
         if (enterOn(successor, input)) {
