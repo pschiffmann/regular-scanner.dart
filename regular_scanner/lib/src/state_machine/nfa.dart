@@ -77,10 +77,15 @@ class NState<T> {
       : guardType = GuardType.value;
 
   /// Creates an NState with [guardType] [GuardType.range].
-  NState.range(int min, int max,
+  // ignore: type_init_formals
+  NState.range(List<Range> this.guard,
       {this.successors = const [], this.accept, this.negated = false})
-      : guardType = GuardType.range,
-        guard = Range(min, max);
+      : guardType = GuardType.range {
+    final guard = this.guard as List<Range>;
+    for (var i = 0; i < guard.length - 1; i++) {
+      assert(guard[i].max < guard[i + 1].min);
+    }
+  }
 
   /// Creates an NState with [guardType] [GuardType.wildcard].
   NState.wildcard({this.successors = const [], this.accept})
@@ -103,9 +108,10 @@ class NState<T> {
 
   /// The type depends on [guardType]:
   /// - [int] for [GuardType.value]
-  /// - [Range] for [GuardType.range]
+  /// - `List<Range>` for [GuardType.range]; the list elements are
+  ///   non-overlapping and in ascending order.
   /// - `null` for [GuardType.wildcard]
-  final dynamic/*=int|Range|Null*/ guard;
+  final dynamic/*=int|List<Range>|Null*/ guard;
 
   /// If `true`, the state is entered if the current input does **not** match
   /// [guard]; `null` for [GuardType.wildcard] states.
@@ -129,8 +135,9 @@ bool enterOn(NState state, int input) {
       final guard = state.guard as int;
       return state.negated ? guard != input : guard == input;
     case GuardType.range:
-      final guard = state.guard as Range;
-      return state.negated ? !guard.contains(input) : guard.contains(input);
+      final guard = state.guard as List<Range>;
+      final contained = guard.any((r) => r.contains(input));
+      return state.negated != contained;
     case GuardType.wildcard:
       return true;
     default:

@@ -19,8 +19,6 @@
 /// between states.
 library regular_scanner.regex.compiler;
 
-import 'package:quiver/collection.dart';
-
 import '../../regular_scanner.dart';
 import '../state_machine/nfa.dart';
 import 'ast.dart';
@@ -36,20 +34,18 @@ NState<T> compile<T extends Regex>(T regex) {
   final ast = parse(regex.pattern);
 
   final acceptingStates = ast.last.toSet();
-  final nstates = ListMultimap<AtomicExpression, NState<T>>();
+  final nstates = <AtomicExpression, NState<T>>{};
 
   for (final leaf in ast.leafs) {
     final accept = acceptingStates.contains(leaf) ? regex : null;
     if (leaf is Literal) {
-      nstates.add(leaf,
-          NState<T>.value(leaf.codePoint, successors: [], accept: accept));
+      nstates[leaf] =
+          NState<T>.value(leaf.codePoint, successors: [], accept: accept);
     } else if (leaf is CharacterSet) {
-      nstates.addValues(
-          leaf,
-          leaf.codePoints.map((range) => NState.range(range.min, range.max,
-              negated: leaf.negated, successors: [], accept: accept)));
+      nstates[leaf] = NState.range(leaf.codePoints,
+          negated: leaf.negated, successors: [], accept: accept);
     } else if (leaf is Wildcard) {
-      nstates.add(leaf, NState.wildcard(successors: [], accept: accept));
+      nstates[leaf] = NState.wildcard(successors: [], accept: accept);
     } else {
       throw UnimplementedError();
     }
@@ -57,11 +53,11 @@ NState<T> compile<T extends Regex>(T regex) {
 
   nstates.forEach((leaf, nstate) {
     for (final successor in leaf.successors.toSet()) {
-      (nstate.successors as List<NState<T>>).addAll(nstates[successor]);
+      (nstate.successors as List<NState<T>>).add(nstates[successor]);
     }
   });
 
   return NState.start(
-      successors: ast.first.expand((state) => nstates[state]).toList(),
+      successors: ast.first.map((state) => nstates[state]).toList(),
       accept: ast.optional ? regex : null);
 }

@@ -29,30 +29,32 @@ void main() {
     //               c |  x  x  x  x  x  x  x  x  x  x  x  x  x | x
     //               d |           x  x  x                      |
     //               e |                             x  x  x  x |
-    //               f |  x  x                    x  x  x  x  x | x
+    //               f |  x  x                 x  x  x        x | x
     //               g |  x  x     x  x  x  x  x  x  x  x  x  x | x
     //              ------------------------------------------------
-    // powerset ids       2  3  4  5  5  5  6  6  3  7  7  8  8   9
-    final a = NState<String>.range(-5, 5),
+    // powerset ids       2  3  4  5  5  5  6  3  3  7  8  9 10  11
+    final a = NState<String>.range([Range(-5, 5)]),
         b = NState<String>.value(-5),
         c = NState<String>.wildcard(),
-        d = NState<String>.range(-2, 0),
-        e = NState<String>.range(4, 7),
-        f = NState<String>.range(-3, 2, negated: true),
+        d = NState<String>.range([Range(-2, 0)]),
+        e = NState<String>.range([Range(4, 7)]),
+        f = NState<String>.range([Range(-3, 1), Range(5, 6)], negated: true),
         g = NState<String>.value(-3, negated: true);
 
     // Define the DState ids by hand according to the table above.
     final powersetIds = LinkedHashMap<Set<NState<String>>, int>(
         equals: compareSet, hashCode: hashSet)
       ..addAll({
-        Set.of([a, b, c, f, g]): 2,
-        Set.of([a, c, f, g]): 3,
-        Set.of([a, c]): 4,
-        Set.of([a, c, d, g]): 5,
-        Set.of([a, c, g]): 6,
-        Set.of([a, c, e, f, g]): 7,
-        Set.of([c, e, f, g]): 8,
-        Set.of([c, f, g]): 9
+        {a, b, c, f, g}: 2,
+        {a, c, f, g}: 3,
+        {a, c}: 4,
+        {a, c, d, g}: 5,
+        {a, c, g}: 6,
+        {a, c, e, f, g}: 7,
+        {a, c, e, g}: 8,
+        {c, e, g}: 9,
+        {c, e, f, g}: 10,
+        {c, f, g}: 11
       });
 
     int lookupId(Set<NState<String>> powerset) =>
@@ -60,12 +62,12 @@ void main() {
 
     // Create a powerset that has states a-g as successors, and pass it to
     // [constructState].
-    final powerset = Set<NState<String>>.of([
+    final powerset = <NState<String>>{
       NState.value(1, successors: [a, b], accept: acceptValue1),
       NState.value(1, successors: [c, d], accept: acceptValue2),
-      NState.range(1, 2, successors: [e, f, g]),
+      NState.range([Range(1, 2)], successors: [e, f, g]),
       NState.wildcard(successors: [b, d], accept: acceptValue1)
-    ]);
+    };
     final dstate =
         constructState<String, String>(powerset, lookupId, computeAccept);
 
@@ -80,16 +82,18 @@ void main() {
         Transition(-4, -4, 3),
         Transition(-3, -3, 4),
         Transition(-2, 0, 5),
-        Transition(1, 2, 6),
-        Transition(3, 3, 3),
-        Transition(4, 5, 7),
-        Transition(6, 7, 8),
+        Transition(1, 1, 6),
+        Transition(2, 3, 3),
+        Transition(4, 4, 7),
+        Transition(5, 5, 8),
+        Transition(6, 6, 9),
+        Transition(7, 7, 10),
       ]);
     });
 
     test(
         'includes wildcard and negated successors '
         'in `DState.defaultTransition`',
-        () => expect(dstate.defaultTransition, 9));
+        () => expect(dstate.defaultTransition, 11));
   });
 }

@@ -1,5 +1,5 @@
 name: regular_scanner
-description: Compile time constant, ambiguity-checked regular expressions, and state machine-based general purpose pattern matching.
+description: Fast, ambiguity-checked regular expressions, and state machine-based general purpose pattern matching.
 
 version: 0.1.0
 environment:

@@ -75,7 +75,9 @@ DState<D> constructState<N, D>(Set<NState<N>> powerset,
         if (successor.negated) defaultTransition.add(successor);
         break;
       case GuardType.range:
-        reserve(reservedRanges, successor.guard as Range);
+        for (final range in successor.guard as List<Range>) {
+          reserve(reservedRanges, range);
+        }
         if (successor.negated) defaultTransition.add(successor);
         break;
       case GuardType.wildcard:
@@ -94,7 +96,8 @@ DState<D> constructState<N, D>(Set<NState<N>> powerset,
           if (guardContained != successor.negated) successorSet.add(successor);
           break;
         case GuardType.range:
-          final guardContained = range.intersects(successor.guard as Range);
+          final guardContained =
+              (successor.guard as List<Range>).any(range.intersects);
           if (guardContained != successor.negated) successorSet.add(successor);
           break;
         case GuardType.wildcard:
