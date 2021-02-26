@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart' show PriorityQueue;
+import 'package:quiver/core.dart';
 
 import '../../state_machine.dart';
 import '../range.dart';
@@ -159,6 +160,18 @@ class Transition extends Range {
 
   /// The id of the successor state.
   final int successor;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other.runtimeType == Transition &&
+          other is Transition &&
+          other.min == min &&
+          other.max == max &&
+          other.successor == successor;
+
+  @override
+  int get hashCode => hash3(min, max, successor);
 
   @override
   String toString() => '${super.toString()} -> $successor';

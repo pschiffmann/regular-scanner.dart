@@ -130,7 +130,10 @@ class Range {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Range && other.min == min && other.max == max;
+      other.runtimeType == Range &&
+          other is Range &&
+          other.min == min &&
+          other.max == max;
 
   @override
   int get hashCode => hash2(min, max);

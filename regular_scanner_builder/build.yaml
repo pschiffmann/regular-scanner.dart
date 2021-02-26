@@ -2,7 +2,7 @@ builders:
   regular_scanner_builder:
     import: "package:regular_scanner_builder/builder.dart"
     builder_factories: ["scannerBuilder"]
-    build_extensions: {".dart": [".g.dart"]}
+    build_extensions: { ".dart": ["scanner_generator.g.part"] }
     auto_apply: root_package
     runs_before: ["source_gen|combining_builder"]
     applies_builders: ["source_gen|combining_builder"]

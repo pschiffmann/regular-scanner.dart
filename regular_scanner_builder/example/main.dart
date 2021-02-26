@@ -1,4 +1,4 @@
-import 'package:regular_scanner/built_scanner.dart';
+/*import 'package:regular_scanner/built_scanner.dart';
 
 part 'main.g.dart';
 
@@ -36,3 +36,4 @@ void main(List<String> args) {
     }
   }
 }
+*/

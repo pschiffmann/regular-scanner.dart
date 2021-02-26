@@ -5,11 +5,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "test .dart_tool...build.dart",
-      "type": "dart",
-      "request": "launch",
+      "name": "Dart",
       "program": ".dart_tool/build/entrypoint/build.dart",
-      "cwd": "test"
+      "request": "launch",
+      "type": "dart",
+      "args": ["build"]
     }
   ]
 }

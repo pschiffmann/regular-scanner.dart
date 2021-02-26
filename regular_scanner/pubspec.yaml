@@ -21,4 +21,7 @@ dev_dependencies:
 
   # Only here to test `example/konami_code.dart`.
   # Run with `webdev serve example`.
-  build_web_compilers: any
+  #  build_web_compilers: any
+  lookaround_iterator: any
+  regular_scanner_builder:
+    path: ../regular_scanner_builder

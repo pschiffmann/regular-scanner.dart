@@ -1,4 +1,4 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
+/*// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'main.dart';
 
@@ -57,3 +57,4 @@ const _$scanner = TableDrivenScanner<NamedRegex>([], [
       defaultTransition: -1,
       accept: NamedRegex('0x[0-9A-Fa-f]+', 'hexadecimal')),
 ]);
+*/

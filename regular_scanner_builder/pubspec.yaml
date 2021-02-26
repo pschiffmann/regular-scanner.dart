@@ -5,18 +5,20 @@ homepage: https://github.com/pschiffmann/regular-scanner.dart/regular_scanner_bu
 author: Philipp Schiffmann <philippschiffmann93@gmail.com>
 
 environment:
-  sdk: '>=2.0.0 <3.0.0'
+  sdk: ">=2.0.0 <3.0.0"
 dependencies:
-  analyzer: any
+  analyzer: ^0.37.0
   build: any
   source_gen: ^0.9.0
   # Not imported in code; This dependency restricts consumers of this package to
   # a version of `build` that still uses the same `build.yaml` format.
-  build_config: ^0.3.0
+  build_config: ^0.4.0
   regular_scanner:
-    path: ../regular_scanner
+    git:
+      url: https://github.com/pschiffmann/regular-scanner.dart
+      ref: ca528b1848a4b24738354fe3f56b5064f9fbf3b4
+      path: regular_scanner
 dev_dependencies:
   test: ^1.0.0
   pedantic_pschiffmann:
-    git:
-      https://github.com/pschiffmann/pedantic-pschiffmann.dart
+    git: https://github.com/pschiffmann/pedantic-pschiffmann.dart

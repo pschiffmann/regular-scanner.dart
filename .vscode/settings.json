@@ -7,8 +7,5 @@
   "files.eol": "\n",
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
-  "files.trimTrailingWhitespace": true,
-  "dart.vmAdditionalArgs": [
-    "--checked"
-  ]
+  "files.trimTrailingWhitespace": true
 }

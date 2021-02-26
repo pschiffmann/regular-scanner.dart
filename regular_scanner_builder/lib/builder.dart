@@ -6,8 +6,8 @@ import 'src/builder.dart';
 /// The [BuilderFactory] that is specified in `build.yaml`.
 Builder scannerBuilder(BuilderOptions options) {
   if (options.config.isNotEmpty) {
-    log.warning('Ignoring unused config options');
+    log.warning('Ignoring unused config options: ${options.config.keys}');
   }
   return SharedPartBuilder(
-      const [TableDrivenScannerGenerator()], 'regular_scanner');
+      const [StateMachineScannerGenerator()], 'regular_scanner');
 }

@@ -1,0 +1,5 @@
+name: test
+dependencies:
+  regular_scanner_builder:
+    path: ../regular_scanner_builder
+  build_runner: "^1.0.0"
